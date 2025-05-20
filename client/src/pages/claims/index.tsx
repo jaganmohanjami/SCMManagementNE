@@ -83,7 +83,7 @@ export default function ClaimsPage() {
   const getAcceptedStatusBadge = (accepted?: boolean) => {
     if (accepted === undefined) return <Badge variant="outline">Pending</Badge>;
     return accepted ? 
-      <Badge variant="success">Accepted</Badge> : 
+      <Badge className="badge-neptune-success">Accepted</Badge> : 
       <Badge variant="destructive">Rejected</Badge>;
   };
 
@@ -106,12 +106,12 @@ export default function ClaimsPage() {
     {
       header: "Project",
       accessorKey: "projectId",
-      cell: (row) => getProjectName(row.projectId),
+      cell: (row) => getProjectName(row.projectId || undefined),
     },
     {
       header: "Claim Area",
       accessorKey: "claimArea",
-      cell: (row) => getClaimAreaBadge(row.claimArea),
+      cell: (row) => getClaimAreaBadge(row.claimArea || undefined),
     },
     {
       header: "Date",
@@ -132,7 +132,7 @@ export default function ClaimsPage() {
     {
       header: "Status",
       accessorKey: "acceptedBySupplier",
-      cell: (row) => getAcceptedStatusBadge(row.acceptedBySupplier),
+      cell: (row) => getAcceptedStatusBadge(row.acceptedBySupplier === null ? undefined : row.acceptedBySupplier),
     },
     {
       header: "Actions",
