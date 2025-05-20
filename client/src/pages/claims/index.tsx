@@ -167,8 +167,8 @@ export default function ClaimsPage() {
           <p className="text-muted-foreground">Track and manage supplier claims</p>
         </div>
 
-        {isLegal && (
-          <Button asChild>
+        {(isLegal || isOperations) && (
+          <Button asChild className="bg-[#0063B1] hover:bg-[#004c8a]">
             <Link href="/claims/new">
               <Plus className="mr-2 h-4 w-4" /> New Claim
             </Link>
