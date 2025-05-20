@@ -437,7 +437,7 @@ export default function ClaimForm() {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="">None</SelectItem>
+                                <SelectItem value="none">None</SelectItem>
                                 {agreements.map((agreement) => (
                                   <SelectItem 
                                     key={agreement.id} 
