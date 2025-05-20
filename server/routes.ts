@@ -125,8 +125,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/suppliers", isAuthenticated, async (req, res) => {
     try {
       const suppliers = await storage.getSuppliers();
-      res.json(suppliers);
+      console.log("Fetched suppliers:", suppliers);
+      res.json(suppliers || []);
     } catch (error) {
+      console.error("Error fetching suppliers:", error);
       res.status(500).json({ message: "Failed to fetch suppliers" });
     }
   });
@@ -296,8 +298,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/projects", isAuthenticated, async (req, res) => {
     try {
       const projects = await storage.getProjects();
-      res.json(projects);
+      console.log("Fetched projects:", projects);
+      res.json(projects || []);
     } catch (error) {
+      console.error("Error fetching projects:", error);
       res.status(500).json({ message: "Failed to fetch projects" });
     }
   });
@@ -525,7 +529,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ratings = await storage.getSupplierRatings();
       }
       
-      res.json(ratings);
+      console.log("Fetched supplier ratings:", ratings);
+      res.json(ratings || []);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch ratings" });
     }
