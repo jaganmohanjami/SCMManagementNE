@@ -73,14 +73,14 @@ export function Sidebar() {
   };
   
   return (
-    <aside className="w-64 h-full bg-white dark:bg-gray-900 shadow-md fixed left-0 top-0 z-30">
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+    <aside className="w-64 h-full bg-white dark:bg-gray-900 shadow-md fixed left-0 top-0 z-30 border-r border-gray-200 dark:border-gray-700">
+      <div className="p-4 border-b-2 border-[#0063B1]">
         <div className="flex items-center">
-          <div className="h-10 w-10 rounded-md bg-primary flex items-center justify-center text-white font-bold text-xl">
+          <div className="h-10 w-10 rounded-md bg-[#0063B1] flex items-center justify-center text-white font-bold text-xl">
             NE
           </div>
           <div className="ml-3">
-            <h1 className="text-primary font-semibold text-lg">Neptune Energy</h1>
+            <h1 className="text-[#0063B1] font-semibold text-lg">Neptune Energy</h1>
             <p className="text-muted-foreground text-xs">SCM Supplier Management</p>
           </div>
         </div>

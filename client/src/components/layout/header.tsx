@@ -13,10 +13,10 @@ export function Header({ title }: HeaderProps) {
   if (!user) return null;
   
   return (
-    <header className="bg-white dark:bg-gray-900 shadow-sm sticky top-0 z-20">
+    <header className="bg-white dark:bg-gray-900 shadow-sm sticky top-0 z-20 border-b-2 border-[#0063B1]">
       <div className="flex items-center justify-between h-16 px-6">
         <div className="flex items-center">
-          <h2 className="text-xl font-semibold text-foreground">{title}</h2>
+          <h2 className="text-xl font-semibold neptune-heading">{title}</h2>
         </div>
         
         <div className="flex items-center space-x-4">
