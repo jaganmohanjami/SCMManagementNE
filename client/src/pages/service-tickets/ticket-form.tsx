@@ -86,19 +86,29 @@ export default function TicketForm() {
   });
   const [selectedPriceList, setSelectedPriceList] = useState<number | null>(null);
   const [selectedPriceItem, setSelectedPriceItem] = useState<PriceList | null>(null);
+  const [ticketItems, setTicketItems] = useState<TicketItem[]>([]);
   
   const isEditing = !!id;
   const isSupplier = user?.role === "supplier";
   const isOperations = user?.role === "operations";
-  const canEdit = (isSupplier && (!isEditing || (ticket?.status === "draft" && ticket?.supplierId === user?.companyId))) || 
-                 (isOperations && !isEditing);
+
+  const form = useForm<TicketFormValues>({
+    resolver: zodResolver(ticketFormSchema),
+    defaultValues: {
+      supplierId: isSupplier && user?.companyId ? user.companyId : undefined,
+      projectId: undefined,
+      agreementId: undefined,
+      status: "draft",
+      dateCreated: format(new Date(), "yyyy-MM-dd"),
+    },
+  });
 
   // Fetch ticket data if editing
   const { data: ticket, isLoading: isLoadingTicket } = useQuery<ServiceTicket & { items?: TicketItem[] }>({
     queryKey: ['/api/tickets', parseInt(id || '0')],
     enabled: isEditing,
   });
-
+  
   // Fetch suppliers
   const { data: suppliers = [] } = useQuery<Supplier[]>({
     queryKey: ['/api/suppliers'],
@@ -108,7 +118,7 @@ export default function TicketForm() {
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
   });
-
+  
   // Fetch agreements for selected supplier
   const { data: agreements = [], isLoading: isLoadingAgreements } = useQuery<Agreement[]>({
     queryKey: ['/api/agreements', { supplierId: form.watch("supplierId") }],
@@ -120,26 +130,29 @@ export default function TicketForm() {
     queryKey: ['/api/agreements', selectedPriceList, '/pricelist'],
     enabled: !!selectedPriceList,
   });
-
-  const form = useForm<TicketFormValues>({
-    resolver: zodResolver(ticketFormSchema),
-    defaultValues: {
-      supplierId: isSupplier && user?.companyId ? user.companyId : undefined,
-      projectId: undefined,
-      agreementId: undefined,
-      status: "draft",
-    },
-  });
+  
+  // Define canEdit after all dependent data is fetched
+  const canEdit = (isSupplier && (!isEditing || (ticket?.status === "draft" && ticket?.supplierId === user?.companyId))) || 
+                 (isOperations && !isEditing);
 
   useEffect(() => {
     if (ticket) {
-      form.reset({
+      // Format dates for form compatibility
+      const formattedTicket = {
         ...ticket,
         dateCreated: ticket.dateCreated ? format(new Date(ticket.dateCreated), "yyyy-MM-dd") : undefined,
-      });
+        dateSubmitted: ticket.dateSubmitted ? format(new Date(ticket.dateSubmitted), "yyyy-MM-dd") : undefined,
+        dateApproved: ticket.dateApproved ? format(new Date(ticket.dateApproved), "yyyy-MM-dd") : undefined,
+      };
+      
+      form.reset(formattedTicket);
       
       if (ticket.agreementId) {
         setSelectedPriceList(ticket.agreementId);
+      }
+      
+      if (ticket.items && ticket.items.length > 0) {
+        setTicketItems(ticket.items);
       }
     }
   }, [ticket, form]);
