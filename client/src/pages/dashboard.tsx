@@ -4,6 +4,7 @@ import { MetricCard } from "@/components/stats/metric-card";
 import { ActivityList } from "@/components/activity/activity-list";
 import { SupplierPerformanceChart } from "@/components/dashboard/supplier-performance-chart";
 import { ClaimsOverview } from "@/components/dashboard/claims-overview";
+import { RoleSelector } from "@/components/role-selector";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -78,6 +79,7 @@ export default function Dashboard() {
   
   return (
     <AppLayout title="Dashboard">
+      <RoleSelector />
       {renderWelcomeMessage()}
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
