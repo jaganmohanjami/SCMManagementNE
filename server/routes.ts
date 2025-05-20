@@ -17,6 +17,7 @@ import {
   insertSupplierRatingSchema,
   insertFileUploadSchema,
 } from "@shared/schema";
+import { setupDashboardStats } from "./dashboard-stats";
 
 // Set up file uploads
 const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -39,6 +40,9 @@ const upload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
+  
+  // Set up dashboard stats (no authentication required)
+  setupDashboardStats(app);
   
   // Middleware to check if user is authenticated
   const isAuthenticated = (req: Request, res: Response, next: Function) => {
