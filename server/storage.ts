@@ -12,9 +12,7 @@ import {
   activityLogs, type ActivityLog, type InsertActivityLog
 } from "@shared/schema";
 import session from "express-session";
-import createMemoryStore from "memorystore";
-
-const MemoryStore = createMemoryStore(session);
+import { DatabaseStorage } from "./database-storage";
 
 // Interface for storage operations
 export interface IStorage {
@@ -622,4 +620,4 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
