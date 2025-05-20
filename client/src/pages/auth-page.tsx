@@ -11,7 +11,7 @@ import { useAuth, type LoginData, type RegisterData } from "@/hooks/use-auth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Building2, Mail, User, Lock, Info } from "lucide-react";
+import { Building2, Mail, User, Lock, Info, FileText, AlertTriangle } from "lucide-react";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -315,7 +315,7 @@ export default function AuthPage() {
               
               <div className="flex items-start">
                 <div className="bg-white/20 p-2 rounded-full mr-4">
-                  <Ticket className="h-6 w-6" />
+                  <FileText className="h-6 w-6" />
                 </div>
                 <div>
                   <h3 className="font-medium">Service Delivery Tickets</h3>
