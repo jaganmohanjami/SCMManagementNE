@@ -131,6 +131,16 @@ export function setupAuth(app: Express) {
     });
   });
 
+  // Get current user route
+  app.get("/api/user", (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    // Return user without password
+    const { password, ...userWithoutPassword } = req.user;
+    res.json(userWithoutPassword);
+  });
+
   // Initialize with default users if none exist
   initDefaultUsers();
 }
