@@ -5,7 +5,7 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Star, Eye, Calendar } from "lucide-react";
+import { Plus, Search, Star, Eye, Calendar, Send } from "lucide-react";
 import { Link } from "wouter";
 import { DataTable, Column } from "@/components/tables/data-table";
 import { SupplierRating, Supplier, Project } from "@shared/schema";
@@ -288,13 +288,23 @@ export default function SupplierRatingsPage() {
           <p className="text-muted-foreground">Evaluate and track supplier performance metrics</p>
         </div>
 
-        {isOperations && (
-          <Button asChild>
-            <Link href="/ratings/new">
-              <Plus className="mr-2 h-4 w-4" /> Add New Rating
-            </Link>
-          </Button>
-        )}
+        <div className="flex gap-3">
+          {user?.role === "supplier" && (
+            <Button asChild variant="outline">
+              <Link href="/ratings/request">
+                <Send className="mr-2 h-4 w-4" /> Request Rating
+              </Link>
+            </Button>
+          )}
+          
+          {isOperations && (
+            <Button asChild>
+              <Link href="/ratings/new">
+                <Plus className="mr-2 h-4 w-4" /> Add New Rating
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">

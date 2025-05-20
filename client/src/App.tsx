@@ -16,6 +16,7 @@ import ClaimsPage from "@/pages/claims";
 import ClaimForm from "@/pages/claims/claim-form";
 import SupplierRatingsPage from "@/pages/supplier-ratings";
 import RatingForm from "@/pages/supplier-ratings/rating-form";
+import RequestRatingPage from "@/pages/supplier-ratings/request-rating";
 import UserManagementPage from "@/pages/user-management";
 
 function Router() {
@@ -94,12 +95,17 @@ function Router() {
       <ProtectedRoute 
         path="/ratings" 
         component={SupplierRatingsPage}
-        requiredRoles={["purchasing", "operations", "management"]} 
+        requiredRoles={["purchasing", "operations", "management", "supplier"]} 
       />
       <ProtectedRoute 
         path="/ratings/new" 
         component={RatingForm}
         requiredRoles={["operations"]} 
+      />
+      <ProtectedRoute 
+        path="/ratings/request" 
+        component={RequestRatingPage}
+        requiredRoles={["supplier"]} 
       />
       <ProtectedRoute 
         path="/ratings/:id" 
