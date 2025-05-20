@@ -187,7 +187,7 @@ export default function ClaimsPage() {
                   <SelectValue placeholder="All Suppliers" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Suppliers</SelectItem>
+                  <SelectItem value="all">All Suppliers</SelectItem>
                   {suppliers.map((supplier) => (
                     <SelectItem key={supplier.id} value={supplier.id.toString()}>
                       {supplier.companyName}
@@ -207,7 +207,7 @@ export default function ClaimsPage() {
                 <SelectValue placeholder="All Claim Areas" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Claim Areas</SelectItem>
+                <SelectItem value="all">All Claim Areas</SelectItem>
                 <SelectItem value="Material">Material</SelectItem>
                 <SelectItem value="Service">Service</SelectItem>
                 <SelectItem value="HSE">HSE</SelectItem>
