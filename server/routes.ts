@@ -195,7 +195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         agreements = await storage.getAgreements();
       }
       
-      res.json(agreements);
+      res.json(agreements || []);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch agreements" });
     }
@@ -328,8 +328,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/tickets", isAuthenticated, async (req, res) => {
     try {
       const tickets = await storage.getServiceTickets();
-      res.json(tickets);
+      console.log("Fetched service tickets:", tickets);
+      res.json(tickets || []);
     } catch (error) {
+      console.error("Error fetching service tickets:", error);
       res.status(500).json({ message: "Failed to fetch service tickets" });
     }
   });
@@ -420,8 +422,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/claims", isAuthenticated, async (req, res) => {
     try {
       const claims = await storage.getClaims();
-      res.json(claims);
+      console.log("Fetched claims:", claims);
+      res.json(claims || []);
     } catch (error) {
+      console.error("Error fetching claims:", error);
       res.status(500).json({ message: "Failed to fetch claims" });
     }
   });
