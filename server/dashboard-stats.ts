@@ -20,7 +20,12 @@ export function setupDashboardStats(app: Express) {
       );
       
       // Get recent tickets
-      const serviceTickets = await storage.getServiceTickets();
+      let serviceTickets = [];
+      try {
+        serviceTickets = await storage.getServiceTickets();
+      } catch (error) {
+        console.error("Error fetching service tickets:", error);
+      }
       const recentTickets = serviceTickets.length;
       
       // Get tickets pending approval
