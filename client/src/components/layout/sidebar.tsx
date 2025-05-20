@@ -35,8 +35,8 @@ function SidebarLink({ href, icon, label, active, allowed = true }: SidebarLinkP
         className={cn(
           "flex items-center py-2 px-4 text-sm transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer",
           active ? 
-            "bg-primary/10 border-l-4 border-primary text-primary font-medium" :
-            "text-foreground hover:text-primary"
+            "bg-[#0063B1]/10 border-l-4 border-[#0063B1] text-[#0063B1] font-medium" :
+            "text-foreground hover:text-[#0063B1]"
         )}
       >
         <span className="mr-3 text-lg">{icon}</span>

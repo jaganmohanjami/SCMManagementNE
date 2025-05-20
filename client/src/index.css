@@ -91,11 +91,13 @@
     font-family: 'Segoe UI', Arial, sans-serif;
     color: #0063B1;
   }
-  .badge-success {
-    @apply bg-success text-success-foreground;
+  .badge-neptune-success {
+    background-color: hsl(142 76% 36%);
+    color: hsl(210 40% 98%);
   }
-  .badge-warning {
-    @apply bg-warning text-warning-foreground;
+  .badge-neptune-warning {
+    background-color: hsl(38 92% 50%);
+    color: hsl(210 40% 98%);
   }
   .neptune-container {
     max-width: 1440px;

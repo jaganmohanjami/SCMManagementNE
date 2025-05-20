@@ -74,7 +74,7 @@ export default function ClaimsPage() {
       case "Service":
         return <Badge variant="default">{area}</Badge>;
       case "HSE":
-        return <Badge variant="warning">{area}</Badge>;
+        return <Badge className="badge-neptune-warning">{area}</Badge>;
       default:
         return <Badge>{area}</Badge>;
     }
