@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext } from "react";
+import { createContext, ReactNode, useContext, useState } from "react";
 import {
   useQuery,
   useMutation,
@@ -16,6 +16,7 @@ type AuthContextType = {
   loginMutation: UseMutationResult<User, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<User, Error, RegisterData>;
+  switchUser?: (role: string) => void; // Added for role switching
 };
 
 export type LoginData = {
@@ -39,6 +40,74 @@ const registerSchema = insertUserSchema.extend({
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
+// Sample user data for different roles
+const sampleUsers: Record<string, User> = {
+  admin: {
+    id: 1,
+    username: 'admin',
+    name: 'System Administrator',
+    email: 'admin@neptune.com',
+    role: 'purchasing',
+    companyId: null,
+    password: 'admin123' // Normally wouldn't include password, just for demo
+  },
+  purchasing: {
+    id: 2,
+    username: 'purchasing',
+    name: 'Purchasing Manager',
+    email: 'purchasing@neptune.com',
+    role: 'purchasing',
+    companyId: null,
+    password: 'purchasing123'
+  },
+  operations: {
+    id: 3,
+    username: 'operations',
+    name: 'Operations Manager',
+    email: 'operations@neptune.com',
+    role: 'operations',
+    companyId: null,
+    password: 'operations123'
+  },
+  accounting: {
+    id: 4,
+    username: 'accounting',
+    name: 'Accounting Manager',
+    email: 'accounting@neptune.com',
+    role: 'accounting',
+    companyId: null,
+    password: 'accounting123'
+  },
+  legal: {
+    id: 5,
+    username: 'legal',
+    name: 'Legal Manager',
+    email: 'legal@neptune.com',
+    role: 'legal',
+    companyId: null,
+    password: 'legal123'
+  },
+  management: {
+    id: 6,
+    username: 'management',
+    name: 'Senior Manager',
+    email: 'management@neptune.com',
+    role: 'management',
+    companyId: null,
+    password: 'management123'
+  },
+  supplier: {
+    id: 7,
+    username: 'supplier',
+    name: 'Supplier Representative',
+    email: 'supplier@vendor.com',
+    role: 'supplier',
+    companyId: 1,
+    password: 'supplier123'
+  }
+};
+
+// Regular AuthProvider that uses the API
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const {
@@ -130,6 +199,114 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginMutation,
         logoutMutation,
         registerMutation,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+// Custom Auth Provider that uses local state instead of API
+export function CustomAuthProvider({ children }: { children: ReactNode }) {
+  const { toast } = useToast();
+  const [user, setUser] = useState<User | null>(sampleUsers.admin);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Function to switch between different user roles
+  const switchUser = (role: string) => {
+    if (sampleUsers[role]) {
+      setUser(sampleUsers[role]);
+      toast({
+        title: "Role Changed",
+        description: `Now logged in as ${sampleUsers[role].name}`,
+      });
+    } else {
+      toast({
+        title: "Invalid Role",
+        description: "The selected role does not exist",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Mock mutations that don't actually call the API
+  const loginMutation = {
+    isPending: false,
+    mutate: (credentials: LoginData) => {
+      setIsLoading(true);
+      setTimeout(() => {
+        const foundUser = Object.values(sampleUsers).find(
+          u => u.username === credentials.username && u.password === credentials.password
+        );
+        
+        if (foundUser) {
+          setUser(foundUser);
+          toast({
+            title: "Login successful",
+            description: `Welcome back, ${foundUser.name}!`,
+          });
+        } else {
+          toast({
+            title: "Login failed",
+            description: "Invalid username or password",
+            variant: "destructive",
+          });
+        }
+        setIsLoading(false);
+      }, 500);
+    }
+  } as UseMutationResult<User, Error, LoginData>;
+
+  const logoutMutation = {
+    isPending: false,
+    mutate: () => {
+      setIsLoading(true);
+      setTimeout(() => {
+        setUser(null);
+        toast({
+          title: "Logged out",
+          description: "You have been successfully logged out",
+        });
+        setIsLoading(false);
+      }, 500);
+    }
+  } as UseMutationResult<void, Error, void>;
+
+  const registerMutation = {
+    isPending: false,
+    mutate: (data: RegisterData) => {
+      setIsLoading(true);
+      setTimeout(() => {
+        const newUser: User = {
+          id: Math.floor(Math.random() * 1000) + 10,
+          username: data.username,
+          name: data.name,
+          email: data.email,
+          role: data.role,
+          companyId: data.companyId || null,
+          password: data.password
+        };
+        
+        setUser(newUser);
+        toast({
+          title: "Registration successful",
+          description: `Welcome, ${newUser.name}!`,
+        });
+        setIsLoading(false);
+      }, 500);
+    }
+  } as UseMutationResult<User, Error, RegisterData>;
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        error: null,
+        loginMutation,
+        logoutMutation,
+        registerMutation,
+        switchUser
       }}
     >
       {children}

@@ -1,11 +1,10 @@
 import { Switch, Route } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "./hooks/use-auth";
+import { CustomAuthProvider } from "./hooks/use-auth";
 import { ProtectedRoute } from "./lib/protected-route";
 
 import Dashboard from "@/pages/dashboard";
-import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
 import SuppliersPage from "@/pages/suppliers";
 import SupplierForm from "@/pages/suppliers/supplier-form";
@@ -22,8 +21,7 @@ import UserManagementPage from "@/pages/user-management";
 function Router() {
   return (
     <Switch>
-      <ProtectedRoute path="/" component={Dashboard} />
-      <Route path="/auth" component={AuthPage} />
+      <Route path="/" component={Dashboard} />
       
       {/* Supplier routes */}
       <ProtectedRoute 
@@ -125,10 +123,10 @@ function Router() {
 function App() {
   return (
     <TooltipProvider>
-      <AuthProvider>
+      <CustomAuthProvider>
         <Toaster />
         <Router />
-      </AuthProvider>
+      </CustomAuthProvider>
     </TooltipProvider>
   );
 }
