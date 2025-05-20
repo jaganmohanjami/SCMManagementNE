@@ -519,7 +519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Dashboard Stats
-  app.get("/api/dashboard/stats", isAuthenticated, async (req, res) => {
+  app.get("/api/dashboard/stats", async (req, res) => {
     try {
       // Get active suppliers (all suppliers for now)
       const suppliers = await storage.getSuppliers();
