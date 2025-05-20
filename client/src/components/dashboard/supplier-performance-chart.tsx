@@ -5,6 +5,16 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { SupplierRating } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  LabelList
+} from 'recharts';
 
 interface PerformanceData {
   category: string;
@@ -14,7 +24,7 @@ interface PerformanceData {
 export function SupplierPerformanceChart() {
   const [timeRange, setTimeRange] = useState("12");
   
-  const { data: ratingsData, isLoading } = useQuery<SupplierRating[]>({
+  const { data: ratingsData, isLoading, error } = useQuery<SupplierRating[]>({
     queryKey: ['/api/ratings'],
   });
   
@@ -22,34 +32,37 @@ export function SupplierPerformanceChart() {
   
   useEffect(() => {
     if (ratingsData) {
-      // Filter ratings by time range if needed
-      const filteredRatings = ratingsData;
+      console.log("Fetched supplier ratings:", ratingsData);
       
       // Calculate average ratings
-      const hseSum = filteredRatings.reduce((sum, rating) => sum + (rating.hseRating || 0), 0);
-      const hseAvg = filteredRatings.length > 0 ? hseSum / filteredRatings.length : 0;
+      const hseSum = ratingsData.reduce((sum, rating) => sum + (rating.hseRating || 0), 0);
+      const hseAvg = ratingsData.length > 0 ? hseSum / ratingsData.length : 0;
       
-      const commSum = filteredRatings.reduce((sum, rating) => sum + (rating.communicationRating || 0), 0);
-      const commAvg = filteredRatings.length > 0 ? commSum / filteredRatings.length : 0;
+      const commSum = ratingsData.reduce((sum, rating) => sum + (rating.communicationRating || 0), 0);
+      const commAvg = ratingsData.length > 0 ? commSum / ratingsData.length : 0;
       
-      const compSum = filteredRatings.reduce((sum, rating) => sum + (rating.competencyRating || 0), 0);
-      const compAvg = filteredRatings.length > 0 ? compSum / filteredRatings.length : 0;
+      const compSum = ratingsData.reduce((sum, rating) => sum + (rating.competencyRating || 0), 0);
+      const compAvg = ratingsData.length > 0 ? compSum / ratingsData.length : 0;
       
-      const timeSum = filteredRatings.reduce((sum, rating) => sum + (rating.onTimeRating || 0), 0);
-      const timeAvg = filteredRatings.length > 0 ? timeSum / filteredRatings.length : 0;
+      const timeSum = ratingsData.reduce((sum, rating) => sum + (rating.onTimeRating || 0), 0);
+      const timeAvg = ratingsData.length > 0 ? timeSum / ratingsData.length : 0;
       
-      const serviceSum = filteredRatings.reduce((sum, rating) => sum + (rating.serviceRating || 0), 0);
-      const serviceAvg = filteredRatings.length > 0 ? serviceSum / filteredRatings.length : 0;
+      const serviceSum = ratingsData.reduce((sum, rating) => sum + (rating.serviceRating || 0), 0);
+      const serviceAvg = ratingsData.length > 0 ? serviceSum / ratingsData.length : 0;
       
       setPerformanceData([
-        { category: "HSE", value: hseAvg },
-        { category: "Communication", value: commAvg },
-        { category: "Competency", value: compAvg },
-        { category: "On-Time", value: timeAvg },
-        { category: "Service", value: serviceAvg },
+        { category: "HSE", value: parseFloat(hseAvg.toFixed(1)) },
+        { category: "Communication", value: parseFloat(commAvg.toFixed(1)) },
+        { category: "Competency", value: parseFloat(compAvg.toFixed(1)) },
+        { category: "On-Time", value: parseFloat(timeAvg.toFixed(1)) },
+        { category: "Service", value: parseFloat(serviceAvg.toFixed(1)) },
       ]);
     }
   }, [ratingsData, timeRange]);
+  
+  if (error) {
+    console.error("Error loading supplier ratings:", error);
+  }
   
   return (
     <ChartCard 
@@ -71,18 +84,29 @@ export function SupplierPerformanceChart() {
         <div className="space-y-2 py-6">
           <Skeleton className="h-[200px] w-full" />
         </div>
+      ) : error ? (
+        <div className="h-64 flex items-center justify-center">
+          <p className="text-red-500">Error loading performance data</p>
+        </div>
       ) : (
-        <div className="h-64 flex items-end justify-between py-4 mt-2 border-b border-t border-border">
-          {performanceData.map((item) => (
-            <div key={item.category} className="flex flex-col items-center w-1/5">
-              <div 
-                className="bg-primary w-12 rounded-t-md"
-                style={{ height: `${(item.value / 5) * 100}%` }}
-              ></div>
-              <p className="text-xs text-muted-foreground mt-2">{item.category}</p>
-              <p className="text-sm font-semibold">{item.value.toFixed(1)}</p>
-            </div>
-          ))}
+        <div className="h-64 w-full mt-4">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={performanceData}
+              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="category" />
+              <YAxis domain={[0, 5]} />
+              <Tooltip 
+                formatter={(value) => [`${value}/5`, 'Rating']}
+                labelFormatter={(label) => `${label} Performance`}
+              />
+              <Bar dataKey="value" fill="#0284c7" radius={[4, 4, 0, 0]}>
+                <LabelList dataKey="value" position="top" formatter={(value) => `${value}/5`} />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       )}
       
