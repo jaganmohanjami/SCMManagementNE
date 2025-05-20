@@ -13,39 +13,24 @@ export function ProtectedRoute({
 }) {
   const { user, isLoading } = useAuth();
 
-  if (isLoading) {
-    return (
-      <Route path={path}>
+  return (
+    <Route path={path}>
+      {isLoading ? (
         <div className="flex items-center justify-center min-h-screen">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      </Route>
-    );
-  }
-
-  if (!user) {
-    return (
-      <Route path={path}>
+      ) : !user ? (
         <Redirect to="/auth" />
-      </Route>
-    );
-  }
-
-  // Check for required roles
-  if (requiredRoles && requiredRoles.length > 0) {
-    if (!requiredRoles.includes(user.role)) {
-      return (
-        <Route path={path}>
-          <div className="flex flex-col items-center justify-center min-h-screen p-4">
-            <h1 className="text-2xl font-bold text-red-600 mb-2">Access Denied</h1>
-            <p className="text-gray-600 text-center">
-              You don't have permission to access this page. This area requires {requiredRoles.join(' or ')} role.
-            </p>
-          </div>
-        </Route>
-      );
-    }
-  }
-
-  return <Route path={path} component={Component} />;
+      ) : requiredRoles && requiredRoles.length > 0 && !requiredRoles.includes(user.role) ? (
+        <div className="flex flex-col items-center justify-center min-h-screen p-4">
+          <h1 className="text-2xl font-bold text-red-600 mb-2">Access Denied</h1>
+          <p className="text-gray-600 text-center">
+            You don't have permission to access this page. This area requires {requiredRoles.join(' or ')} role.
+          </p>
+        </div>
+      ) : (
+        <Component />
+      )}
+    </Route>
+  );
 }
