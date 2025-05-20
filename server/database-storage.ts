@@ -169,7 +169,7 @@ export class DatabaseStorage implements IStorage {
 
   // Service Tickets
   async getServiceTickets(): Promise<ServiceTicket[]> {
-    return await db.select().from(serviceTickets).orderBy(serviceTickets.createdAt, { direction: 'desc' });
+    return await db.select().from(serviceTickets).orderBy(serviceTickets.createdAt, desc);
   }
 
   async getServiceTicket(id: number): Promise<ServiceTicket | undefined> {
