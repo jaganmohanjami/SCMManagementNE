@@ -57,7 +57,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (user: User) => {
+      console.log('Login successful, updating user data:', user);
       queryClient.setQueryData(["/api/user"], user);
+      // Force a refetch of the user data to ensure it's properly updated
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: "Login successful",
         description: `Welcome back, ${user.name}!`,

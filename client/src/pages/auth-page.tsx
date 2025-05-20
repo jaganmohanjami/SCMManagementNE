@@ -39,7 +39,9 @@ export default function AuthPage() {
 
   // Redirect if already logged in
   useEffect(() => {
+    console.log("Auth page - user state changed:", user);
     if (user) {
+      console.log("Redirecting to dashboard...");
       navigate("/");
     }
   }, [user, navigate]);
