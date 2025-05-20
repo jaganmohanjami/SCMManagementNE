@@ -257,7 +257,7 @@ export default function ServiceTicketsPage() {
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Statuses</SelectItem>
+                <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="draft">Draft</SelectItem>
                 <SelectItem value="submitted">Submitted</SelectItem>
                 <SelectItem value="approved">Approved</SelectItem>
