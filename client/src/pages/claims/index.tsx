@@ -22,6 +22,7 @@ export default function ClaimsPage() {
   
   const isLegal = user?.role === "legal";
   const isSupplier = user?.role === "supplier";
+  const isOperations = user?.role === "operations";
 
   const { data: claims = [], isLoading } = useQuery<Claim[]>({
     queryKey: ['/api/claims'],
