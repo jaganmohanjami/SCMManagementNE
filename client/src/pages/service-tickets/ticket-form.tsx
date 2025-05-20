@@ -137,15 +137,20 @@ export default function TicketForm() {
 
   useEffect(() => {
     if (ticket) {
-      // Format dates for form compatibility
+      // Format dates and ensure type safety for form compatibility
       const formattedTicket = {
         ...ticket,
+        // Handle dates
         dateCreated: ticket.dateCreated ? format(new Date(ticket.dateCreated), "yyyy-MM-dd") : undefined,
         dateSubmitted: ticket.dateSubmitted ? format(new Date(ticket.dateSubmitted), "yyyy-MM-dd") : undefined,
         dateApproved: ticket.dateApproved ? format(new Date(ticket.dateApproved), "yyyy-MM-dd") : undefined,
+        // Ensure null values are converted to undefined for the form
+        createdBy: ticket.createdBy || undefined,
+        approvedBy: ticket.approvedBy || undefined
       };
       
-      form.reset(formattedTicket);
+      // Type assertion to match the form's expected types
+      form.reset(formattedTicket as any);
       
       if (ticket.agreementId) {
         setSelectedPriceList(ticket.agreementId);
@@ -162,7 +167,7 @@ export default function TicketForm() {
     if (selectedPriceItem) {
       setNewItem({
         priceListItemId: selectedPriceItem.id,
-        description: selectedPriceItem.shortText,
+        description: selectedPriceItem.shortText || '',  // Ensure description is never null
         price: selectedPriceItem.grossPrice ? Number(selectedPriceItem.grossPrice) : 0,
         quantity: 1,
         isNew: false,
@@ -330,7 +335,7 @@ export default function TicketForm() {
       case "submitted":
         return <Badge variant="secondary">Submitted</Badge>;
       case "approved":
-        return <Badge variant="success">Approved</Badge>;
+        return <Badge className="bg-green-500 text-white">Approved</Badge>;
       case "rejected":
         return <Badge variant="destructive">Rejected</Badge>;
       default:
@@ -538,8 +543,8 @@ export default function TicketForm() {
                     <div>
                       <dt className="text-sm font-medium text-muted-foreground">Total Value</dt>
                       <dd className="text-base font-medium">
-                        {typeof ticket?.totalValue === 'number' 
-                          ? `€${ticket.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
+                        {ticket?.totalValue
+                          ? `€${parseFloat(ticket.totalValue.toString()).toFixed(2)}`
                           : '€0.00'}
                       </dd>
                     </div>
