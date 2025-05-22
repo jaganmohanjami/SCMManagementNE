@@ -4,19 +4,9 @@ import { useToast } from "@/hooks/use-toast";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Ticket, Eye, Edit, CheckSquare, XSquare, Download } from "lucide-react";
 import { Link } from "wouter";
-import { jsPDF } from "jspdf";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
-} from "@/components/ui/dialog";
 import { DataTable, Column } from "@/components/tables/data-table";
 import { ServiceTicket, Supplier, Project } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
@@ -56,36 +46,14 @@ export default function ServiceTicketsPage() {
     return project ? project.projectName : 'Unknown Project';
   };
 
-  const [approvalNotes, setApprovalNotes] = useState("");
-  const [ticketToAction, setTicketToAction] = useState<{id: number, action: "approve" | "reject"} | null>(null);
-  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
-
-  const handleOpenApprovalDialog = (id: number, action: "approve" | "reject") => {
-    setTicketToAction({ id, action });
-    setApprovalNotes("");
-    setApprovalDialogOpen(true);
-  };
-
-  const handleApproveTicket = async () => {
-    if (!ticketToAction) return;
-    
+  const handleApproveTicket = async (id: number) => {
     try {
-      await apiRequest("PUT", `/api/tickets/${ticketToAction.id}`, { 
-        status: "approved", 
-        approvedBy: user?.id,
-        dateApproved: new Date().toISOString()
-      });
-      
-      // Store notes in localStorage as a workaround (since we can't modify the DB schema)
-      const notesKey = `ticket_${ticketToAction.id}_notes`;
-      localStorage.setItem(notesKey, approvalNotes);
-      
+      await apiRequest("PUT", `/api/tickets/${id}`, { status: "approved" });
       toast({
         title: "Ticket approved",
         description: "The service ticket has been approved",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/tickets'] });
-      setApprovalDialogOpen(false);
     } catch (error) {
       toast({
         title: "Error",
@@ -95,24 +63,14 @@ export default function ServiceTicketsPage() {
     }
   };
 
-  const handleRejectTicket = async () => {
-    if (!ticketToAction) return;
-    
+  const handleRejectTicket = async (id: number) => {
     try {
-      await apiRequest("PUT", `/api/tickets/${ticketToAction.id}`, { 
-        status: "rejected"
-      });
-      
-      // Store notes in localStorage as a workaround (since we can't modify the DB schema)
-      const notesKey = `ticket_${ticketToAction.id}_notes`;
-      localStorage.setItem(notesKey, approvalNotes);
-      
+      await apiRequest("PUT", `/api/tickets/${id}`, { status: "rejected" });
       toast({
         title: "Ticket rejected",
         description: "The service ticket has been rejected",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/tickets'] });
-      setApprovalDialogOpen(false);
     } catch (error) {
       toast({
         title: "Error",
@@ -146,129 +104,11 @@ export default function ServiceTicketsPage() {
       case "submitted":
         return <Badge variant="secondary">Submitted</Badge>;
       case "approved":
-        return <Badge className="badge-neptune-success">Approved</Badge>;
+        return <Badge variant="success">Approved</Badge>;
       case "rejected":
         return <Badge variant="destructive">Rejected</Badge>;
       default:
         return <Badge>{status}</Badge>;
-    }
-  };
-  
-  const generatePDF = async (ticket: ServiceTicket) => {
-    // Get ticket details
-    try {
-      // Fetch ticket items
-      const itemsRes = await fetch(`/api/tickets/${ticket.id}/items`);
-      const items = await itemsRes.json();
-      
-      // Get supplier and project details
-      const supplier = suppliers.find(s => s.id === ticket.supplierId);
-      const project = projects.find(p => p.id === ticket.projectId);
-      
-      // Create PDF document
-      const doc = new jsPDF();
-      
-      // Add Neptune Energy header
-      doc.setTextColor(0, 99, 177); // #0063B1
-      doc.setFontSize(22);
-      doc.text("Neptune Energy", 105, 20, { align: 'center' });
-      
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(18);
-      doc.text("Service Delivery Ticket", 105, 30, { align: 'center' });
-      
-      // Ticket info
-      doc.setFontSize(12);
-      doc.text(`Ticket Number: ${ticket.ticketNumber}`, 20, 45);
-      doc.text(`Date Created: ${format(new Date(ticket.dateCreated), "MMM d, yyyy")}`, 20, 52);
-      
-      if (ticket.dateApproved) {
-        doc.text(`Date Approved: ${format(new Date(ticket.dateApproved), "MMM d, yyyy")}`, 20, 59);
-      }
-      
-      doc.text(`Status: ${ticket.status.toUpperCase()}`, 20, 66);
-      
-      // Supplier and Project details
-      doc.setFontSize(14);
-      doc.text("Supplier Details:", 20, 80);
-      doc.setFontSize(12);
-      doc.text(`Name: ${supplier?.companyName || 'N/A'}`, 25, 87);
-      
-      doc.setFontSize(14);
-      doc.text("Project Details:", 20, 100);
-      doc.setFontSize(12);
-      doc.text(`Name: ${project?.projectName || 'N/A'}`, 25, 107);
-      
-      // Items table
-      if (items && items.length > 0) {
-        doc.setFontSize(14);
-        doc.text("Service Items:", 20, 125);
-        
-        // Table headers
-        doc.setFontSize(12);
-        doc.text("Description", 20, 135);
-        doc.text("Quantity", 120, 135);
-        doc.text("Price", 150, 135);
-        doc.text("Total", 180, 135);
-        
-        // Draw line under headers
-        doc.line(20, 137, 190, 137);
-        
-        // Table content
-        let yPos = 145;
-        let totalAmount = 0;
-        
-        items.forEach((item: any, index: number) => {
-          const price = typeof item.price === 'number' ? item.price : 0;
-          const quantity = typeof item.quantity === 'number' ? item.quantity : 0;
-          const total = price * quantity;
-          totalAmount += total;
-          
-          // Wrap description text if it's too long
-          const description = item.description || 'No description';
-          
-          doc.text(description.substring(0, 40) + (description.length > 40 ? '...' : ''), 20, yPos);
-          doc.text(quantity.toString(), 120, yPos);
-          doc.text(`€${price.toFixed(2)}`, 150, yPos);
-          doc.text(`€${total.toFixed(2)}`, 180, yPos);
-          
-          yPos += 10;
-          
-          // Add new page if needed
-          if (yPos > 270) {
-            doc.addPage();
-            yPos = 20;
-          }
-        });
-        
-        // Draw line under items
-        doc.line(20, yPos, 190, yPos);
-        yPos += 10;
-        
-        // Total amount
-        doc.setFontSize(14);
-        doc.text(`Total Amount: €${totalAmount.toFixed(2)}`, 120, yPos);
-      }
-      
-      // Footer
-      const footerText = `This document was generated on ${format(new Date(), "MMM d, yyyy")}`;
-      doc.setFontSize(10);
-      doc.text(footerText, 105, 280, { align: 'center' });
-      
-      // Save the PDF
-      doc.save(`${ticket.ticketNumber}.pdf`);
-      
-      toast({
-        title: "PDF Generated",
-        description: "Service ticket has been downloaded as a PDF",
-      });
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      toast({
-        title: "Error",
-        description: "Failed to generate PDF",
-        variant: "destructive",
-      });
     }
   };
 
@@ -308,8 +148,8 @@ export default function ServiceTicketsPage() {
       accessorKey: "totalValue",
       cell: (row) => (
         <span className="font-medium">
-          {row.totalValue 
-            ? `€${Number(row.totalValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
+          {typeof row.totalValue === 'number' 
+            ? `€${row.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
             : '€0.00'}
         </span>
       ),
@@ -340,7 +180,7 @@ export default function ServiceTicketsPage() {
               <Button 
                 variant="ghost" 
                 size="icon"
-                onClick={() => handleOpenApprovalDialog(row.id, "approve")}
+                onClick={() => handleApproveTicket(row.id)}
               >
                 <CheckSquare className="h-4 w-4 text-green-600" />
                 <span className="sr-only">Approve</span>
@@ -349,7 +189,7 @@ export default function ServiceTicketsPage() {
               <Button 
                 variant="ghost" 
                 size="icon"
-                onClick={() => handleOpenApprovalDialog(row.id, "reject")}
+                onClick={() => handleRejectTicket(row.id)}
               >
                 <XSquare className="h-4 w-4 text-red-600" />
                 <span className="sr-only">Reject</span>
@@ -358,11 +198,7 @@ export default function ServiceTicketsPage() {
           )}
           
           {row.status === "approved" && (
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => generatePDF(row)}
-            >
+            <Button variant="ghost" size="icon">
               <Download className="h-4 w-4" />
               <span className="sr-only">Download</span>
             </Button>
@@ -464,46 +300,6 @@ export default function ServiceTicketsPage() {
           onPageChange: () => {},
         }}
       />
-      
-      {/* Approval/Rejection Dialog */}
-      <Dialog open={approvalDialogOpen} onOpenChange={setApprovalDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {ticketToAction?.action === "approve" ? "Approve Service Ticket" : "Reject Service Ticket"}
-            </DialogTitle>
-            <DialogDescription>
-              {ticketToAction?.action === "approve" 
-                ? "Add approval notes for this service ticket." 
-                : "Please provide a reason for rejecting this service ticket."}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="mt-4">
-            <Textarea
-              placeholder="Enter notes here..."
-              className="min-h-[100px]"
-              value={approvalNotes}
-              onChange={(e) => setApprovalNotes(e.target.value)}
-            />
-          </div>
-          
-          <DialogFooter className="mt-4">
-            <Button 
-              variant="outline" 
-              onClick={() => setApprovalDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button 
-              className="bg-[#0063B1] hover:bg-[#004c8a]"
-              onClick={ticketToAction?.action === "approve" ? handleApproveTicket : handleRejectTicket}
-            >
-              {ticketToAction?.action === "approve" ? "Approve" : "Reject"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </AppLayout>
   );
 }

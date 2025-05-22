@@ -40,8 +40,6 @@ export default function SupplierRatingsPage() {
   const isOperations = user?.role === "operations";
   const isPurchasing = user?.role === "purchasing";
   const isManagement = user?.role === "management";
-  const isSupplier = user?.role === "supplier";
-  const isEngineer = user?.role === "engineer";
 
   const { data: ratings = [], isLoading } = useQuery<SupplierRating[]>({
     queryKey: ['/api/ratings'],

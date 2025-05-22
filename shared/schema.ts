@@ -80,7 +80,6 @@ export const serviceTickets = pgTable("service_tickets", {
   dateSubmitted: timestamp("date_submitted"),
   dateApproved: timestamp("date_approved"),
   status: text("status").notNull(), // "draft", "submitted", "approved", "rejected"
-  statusNotes: text("status_notes"), // For approval/rejection notes
   totalValue: numeric("total_value"),
   createdBy: integer("created_by").references(() => users.id),
   approvedBy: integer("approved_by").references(() => users.id),

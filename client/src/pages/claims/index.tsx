@@ -23,7 +23,6 @@ export default function ClaimsPage() {
   const isLegal = user?.role === "legal";
   const isSupplier = user?.role === "supplier";
   const isOperations = user?.role === "operations";
-  const isPurchasing = user?.role === "purchasing";
 
   const { data: claims = [], isLoading } = useQuery<Claim[]>({
     queryKey: ['/api/claims'],
@@ -147,38 +146,11 @@ export default function ClaimsPage() {
             </Link>
           </Button>
           
-          {isPurchasing && (
+          {isLegal && (
             <Button variant="ghost" size="icon" asChild>
-              <Link href={`/claims/${row.id}/edit`}>
+              <Link href={`/claims/${row.id}`}>
                 <Edit className="h-4 w-4" />
                 <span className="sr-only">Edit</span>
-              </Link>
-            </Button>
-          )}
-          
-          {isOperations && row.statusText === "Pending Operations Review" && (
-            <Button variant="ghost" size="icon" asChild className="text-neptune">
-              <Link href={`/claims/${row.id}/approve`}>
-                <Edit className="h-4 w-4" />
-                <span className="sr-only">Review &amp; Approve</span>
-              </Link>
-            </Button>
-          )}
-          
-          {isLegal && row.statusText === "Pending Legal Review" && (
-            <Button variant="ghost" size="icon" asChild className="text-neptune">
-              <Link href={`/claims/${row.id}/approve`}>
-                <Edit className="h-4 w-4" />
-                <span className="sr-only">Review &amp; Approve</span>
-              </Link>
-            </Button>
-          )}
-          
-          {isPurchasing && row.statusText === "Ready To Send" && (
-            <Button variant="ghost" size="icon" asChild className="text-green-600">
-              <Link href={`/claims/${row.id}/send-to-supplier`}>
-                <Edit className="h-4 w-4" />
-                <span className="sr-only">Send to Supplier</span>
               </Link>
             </Button>
           )}
@@ -195,7 +167,7 @@ export default function ClaimsPage() {
           <p className="text-muted-foreground">Track and manage supplier claims</p>
         </div>
 
-        {isPurchasing && (
+        {(isLegal || isOperations) && (
           <Button asChild className="bg-[#0063B1] hover:bg-[#004c8a]">
             <Link href="/claims/new">
               <Plus className="mr-2 h-4 w-4" /> New Claim
