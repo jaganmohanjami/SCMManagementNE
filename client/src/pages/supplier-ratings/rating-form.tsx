@@ -56,6 +56,8 @@ const ratingFormSchema = insertSupplierRatingSchema.extend({
   id: z.number().optional(),
   ratingDate: z.string().optional(),
   overallRating: z.number().optional(),
+  // This will be combined with overallText but tracked separately in UI
+  jobDescription: z.string().min(5, "Job description must be at least 5 characters").optional(),
 });
 
 type RatingFormValues = z.infer<typeof ratingFormSchema>;
@@ -260,28 +262,7 @@ export default function RatingForm() {
                   />
                 </div>
                 
-                <FormField
-                  control={form.control}
-                  name="jobDescription"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Job Description*</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Describe the specific job or service being rated" 
-                          className="resize-none" 
-                          rows={3}
-                          {...field}
-                          disabled={isEditing}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Provide details about the specific work that the supplier performed
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+
 
                 <div className="border rounded-md p-4 space-y-4 bg-gray-50 dark:bg-gray-800">
                   <h3 className="font-medium text-lg">Performance Ratings</h3>
@@ -422,16 +403,19 @@ export default function RatingForm() {
                   name="overallText"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Additional Comments</FormLabel>
+                      <FormLabel>Job Description and Comments</FormLabel>
                       <FormControl>
                         <Textarea 
-                          placeholder="Enter any additional comments or feedback about the supplier's performance" 
+                          placeholder="Describe the specific job being rated and provide any additional feedback about the supplier's performance" 
                           className="resize-none" 
-                          rows={4}
+                          rows={5}
                           {...field}
                           disabled={isEditing}
                         />
                       </FormControl>
+                      <FormDescription>
+                        Start with a clear description of the job performed, then add your evaluation comments
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
