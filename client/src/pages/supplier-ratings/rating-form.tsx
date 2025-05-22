@@ -173,12 +173,12 @@ export default function RatingForm() {
           <CardHeader>
             <CardTitle className="flex items-center">
               <Star className="mr-2 h-5 w-5" />
-              {isEditing ? "Rating Details" : "Supplier Rating Form"}
+              {isEditing ? "Job Rating Details" : "Supplier Job Rating Form"}
             </CardTitle>
             <CardDescription>
               {isEditing 
-                ? "View the submitted supplier performance rating" 
-                : "Rate the supplier's performance in various categories"}
+                ? "View the submitted job performance rating for this supplier" 
+                : "Rate the supplier's performance for a specific job or service"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -259,6 +259,29 @@ export default function RatingForm() {
                     )}
                   />
                 </div>
+                
+                <FormField
+                  control={form.control}
+                  name="jobDescription"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Job Description*</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Describe the specific job or service being rated" 
+                          className="resize-none" 
+                          rows={3}
+                          {...field}
+                          disabled={isEditing}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Provide details about the specific work that the supplier performed
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <div className="border rounded-md p-4 space-y-4 bg-gray-50 dark:bg-gray-800">
                   <h3 className="font-medium text-lg">Performance Ratings</h3>

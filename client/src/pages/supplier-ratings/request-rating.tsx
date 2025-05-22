@@ -123,9 +123,9 @@ export default function RequestRatingPage() {
 
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle className="text-xl">Rating Request</CardTitle>
+          <CardTitle className="text-xl">Job Rating Request</CardTitle>
           <CardDescription>
-            Request a performance evaluation for a completed project or service
+            Request a performance evaluation for a completed job or service
           </CardDescription>
         </CardHeader>
         <CardContent>
