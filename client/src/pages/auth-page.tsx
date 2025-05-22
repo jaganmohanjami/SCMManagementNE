@@ -1,17 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth, type LoginData, type RegisterData } from "@/hooks/use-auth";
+import { Input } from "@/components/ui/input";
+import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Building2, Mail, User, Lock, Info, FileText, AlertTriangle } from "lucide-react";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -20,93 +17,69 @@ const loginSchema = z.object({
 
 const registerSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
-  name: z.string().min(1, "Name is required"),
-  email: z.string().email("Please enter a valid email"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string().min(1, "Confirm password is required"),
-  role: z.string().min(1, "Role is required"),
-  companyId: z.number().optional(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
+  role: z.string().default("user"),
+  email: z.string().email("Invalid email address"),
 });
 
 export default function AuthPage() {
-  const [activeTab, setActiveTab] = useState<string>("login");
-  const [location, navigate] = useLocation();
-  const { toast } = useToast();
+  const [, navigate] = useLocation();
   const { user, loginMutation, registerMutation } = useAuth();
+  const [activeTab, setActiveTab] = useState("login");
 
-  // Redirect if already logged in
-  useEffect(() => {
-    console.log("Auth page - user state changed:", user);
-    if (user) {
-      console.log("Redirecting to dashboard...");
-      navigate("/");
-    }
-  }, [user, navigate]);
-
-  // Login form
-  const loginForm = useForm<LoginData>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      username: "",
-      password: ""
-    }
-  });
-
-  // Register form
-  const registerForm = useForm<RegisterData>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: {
-      username: "",
-      name: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-      role: "supplier",
-      companyId: undefined
-    }
-  });
-
-  const onLoginSubmit = (data: LoginData) => {
-    loginMutation.mutate(data);
-  };
-
-  const onRegisterSubmit = (data: RegisterData) => {
-    registerMutation.mutate(data);
-  };
-
-  // If still checking auth status or redirecting, don't render the form yet
+  // If user is already logged in, redirect to home
   if (user) {
+    navigate("/");
     return null;
   }
 
+  // Login form
+  const loginForm = useForm({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+    },
+  });
+
+  // Register form
+  const registerForm = useForm({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+      email: "",
+      role: "user",
+    },
+  });
+
+  const onLoginSubmit = (values: {username: string, password: string}) => {
+    loginMutation.mutate(values);
+  };
+
+  const onRegisterSubmit = (values: {username: string, password: string, email: string, role: string}) => {
+    registerMutation.mutate(values);
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
-      <div className="grid w-full max-w-6xl grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Auth Forms */}
-        <div className="flex items-center justify-center">
-          <Card className="w-full max-w-md">
-            <CardHeader className="space-y-1">
-              <div className="flex items-center justify-center mb-4">
-                <div className="h-12 w-12 rounded-md bg-primary flex items-center justify-center text-white font-bold text-xl">
-                  NE
-                </div>
-              </div>
-              <CardTitle className="text-2xl text-center">Neptune Energy</CardTitle>
+    <div className="min-h-screen flex">
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="w-full max-w-md">
+          <h1 className="text-3xl font-bold text-center mb-8 text-[#0063B1]">Neptune Energy</h1>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl text-center">SCM Vendor Management</CardTitle>
               <CardDescription className="text-center">
-                SCM Supplier Management System
+                Sign in to access your account
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="grid w-full grid-cols-2 mb-4">
                   <TabsTrigger value="login">Login</TabsTrigger>
                   <TabsTrigger value="register">Register</TabsTrigger>
                 </TabsList>
 
-                {/* Login Form */}
                 <TabsContent value="login">
                   <Form {...loginForm}>
                     <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
@@ -117,10 +90,7 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Username</FormLabel>
                             <FormControl>
-                              <div className="relative">
-                                <User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                                <Input placeholder="username" className="pl-10" {...field} />
-                              </div>
+                              <Input placeholder="Enter your username" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -134,10 +104,7 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Password</FormLabel>
                             <FormControl>
-                              <div className="relative">
-                                <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                                <Input type="password" placeholder="••••••" className="pl-10" {...field} />
-                              </div>
+                              <Input type="password" placeholder="Enter your password" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -146,19 +113,18 @@ export default function AuthPage() {
 
                       <Button 
                         type="submit" 
-                        className="w-full" 
+                        className="w-full bg-[#0063B1] hover:bg-[#004c8a]"
                         disabled={loginMutation.isPending}
                       >
-                        {loginMutation.isPending ? "Logging in..." : "Login"}
+                        {loginMutation.isPending ? "Signing in..." : "Sign In"}
                       </Button>
                     </form>
                   </Form>
                 </TabsContent>
 
-                {/* Register Form */}
                 <TabsContent value="register">
                   <Form {...registerForm}>
-                    <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-3">
+                    <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
                       <FormField
                         control={registerForm.control}
                         name="username"
@@ -166,27 +132,7 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Username</FormLabel>
                             <FormControl>
-                              <div className="relative">
-                                <User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                                <Input placeholder="username" className="pl-10" {...field} />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={registerForm.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Full Name</FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <Info className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                                <Input placeholder="John Doe" className="pl-10" {...field} />
-                              </div>
+                              <Input placeholder="Choose a username" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -200,10 +146,7 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Email</FormLabel>
                             <FormControl>
-                              <div className="relative">
-                                <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                                <Input placeholder="example@company.com" className="pl-10" {...field} />
-                              </div>
+                              <Input type="email" placeholder="Enter your email" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -217,60 +160,8 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Password</FormLabel>
                             <FormControl>
-                              <div className="relative">
-                                <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                                <Input type="password" placeholder="••••••" className="pl-10" {...field} />
-                              </div>
+                              <Input type="password" placeholder="Choose a password" {...field} />
                             </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={registerForm.control}
-                        name="confirmPassword"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Confirm Password</FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                                <Input type="password" placeholder="••••••" className="pl-10" {...field} />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={registerForm.control}
-                        name="role"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Role</FormLabel>
-                            <Select 
-                              onValueChange={field.onChange} 
-                              defaultValue={field.value}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <div className="flex items-center">
-                                    <Building2 className="mr-2 h-4 w-4 text-muted-foreground" />
-                                    <SelectValue placeholder="Select your role" />
-                                  </div>
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="supplier">Supplier</SelectItem>
-                                <SelectItem value="purchasing">Purchasing</SelectItem>
-                                <SelectItem value="operations">Operations</SelectItem>
-                                <SelectItem value="accounting">Accounting</SelectItem>
-                                <SelectItem value="legal">Legal</SelectItem>
-                                <SelectItem value="management">Management</SelectItem>
-                              </SelectContent>
-                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -278,64 +169,66 @@ export default function AuthPage() {
 
                       <Button 
                         type="submit" 
-                        className="w-full mt-4" 
+                        className="w-full bg-[#0063B1] hover:bg-[#004c8a]"
                         disabled={registerMutation.isPending}
                       >
-                        {registerMutation.isPending ? "Creating account..." : "Create account"}
+                        {registerMutation.isPending ? "Creating account..." : "Create Account"}
                       </Button>
                     </form>
                   </Form>
                 </TabsContent>
               </Tabs>
             </CardContent>
-            <CardFooter className="flex flex-col">
-              <p className="text-xs text-center text-muted-foreground mt-4">
-                By continuing, you agree to Neptune Energy's Terms of Service and Privacy Policy.
+            <CardFooter className="flex justify-center text-sm">
+              <p>
+                <span className="text-muted-foreground">Default credentials: </span>
+                <span className="font-medium">admin / admin123</span>
               </p>
             </CardFooter>
           </Card>
         </div>
-
-        {/* Hero Section */}
-        <div className="hidden lg:flex flex-col justify-center p-6 bg-gradient-to-br from-primary to-primary/80 text-white rounded-xl">
-          <div className="space-y-6">
-            <h1 className="text-3xl font-bold">SCM Supplier Management Tool</h1>
-            <p className="text-primary-foreground/90 text-lg">
-              A comprehensive platform for Neptune Energy to manage supplier relationships, service delivery tickets, and performance ratings.
-            </p>
-            
-            <div className="space-y-4 pt-4">
-              <div className="flex items-start">
-                <div className="bg-white/20 p-2 rounded-full mr-4">
-                  <Building2 className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="font-medium">Supplier Management</h3>
-                  <p className="text-primary-foreground/80">Maintain complete supplier database with performance history</p>
-                </div>
+      </div>
+      
+      <div className="hidden md:flex md:flex-1 bg-[#0063B1] text-white p-12 flex-col justify-center">
+        <div>
+          <h2 className="text-3xl font-bold mb-6">SCM Vendor Management System</h2>
+          <p className="text-xl mb-8">
+            Streamline your supplier relationships and optimize your supply chain management
+          </p>
+          <ul className="space-y-3">
+            <li className="flex items-center">
+              <div className="rounded-full bg-white/20 p-1 mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
               </div>
-              
-              <div className="flex items-start">
-                <div className="bg-white/20 p-2 rounded-full mr-4">
-                  <FileText className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="font-medium">Service Delivery Tickets</h3>
-                  <p className="text-primary-foreground/80">Create and approve field tickets based on price agreements</p>
-                </div>
+              Manage supplier agreements
+            </li>
+            <li className="flex items-center">
+              <div className="rounded-full bg-white/20 p-1 mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
               </div>
-              
-              <div className="flex items-start">
-                <div className="bg-white/20 p-2 rounded-full mr-4">
-                  <AlertTriangle className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="font-medium">Claim Management</h3>
-                  <p className="text-primary-foreground/80">Track and resolve supplier claims in a structured process</p>
-                </div>
+              Process service tickets and claims
+            </li>
+            <li className="flex items-center">
+              <div className="rounded-full bg-white/20 p-1 mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
               </div>
-            </div>
-          </div>
+              Track supplier performance ratings
+            </li>
+            <li className="flex items-center">
+              <div className="rounded-full bg-white/20 p-1 mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+              Generate performance reports
+            </li>
+          </ul>
         </div>
       </div>
     </div>
