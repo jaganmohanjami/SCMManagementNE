@@ -45,25 +45,25 @@ export default function SupplierRatingsView() {
     {
       header: "Date",
       accessorKey: "ratingDate",
-      cell: (row) => format(new Date(row.ratingDate), "MMM d, yyyy"),
+      cell: ({ row }) => format(new Date(row.original.ratingDate), "MMM d, yyyy"),
     },
     {
       header: "Project",
       accessorKey: "projectId",
-      cell: (row) => getProjectName(row.projectId),
+      cell: ({ row }) => getProjectName(row.original.projectId),
     },
     {
       header: "Overall Rating",
       accessorKey: "overallRating",
-      cell: (row) => renderStars(Number(row.overallRating) || 0),
+      cell: ({ row }) => renderStars(Number(row.original.overallRating) || 0),
     },
     {
       header: "Actions",
-      id: "actions",
-      cell: (row) => (
+      accessorKey: "actions",
+      cell: ({ row }) => (
         <div className="flex items-center justify-end gap-2">
           <Button size="icon" variant="ghost" asChild>
-            <Link href={`/ratings/${row.id}`}>
+            <Link href={`/ratings/${row.original.id}`}>
               <Eye className="h-4 w-4" />
               <span className="sr-only">View Job Rating</span>
             </Link>
