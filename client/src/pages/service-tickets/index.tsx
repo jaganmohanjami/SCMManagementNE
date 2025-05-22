@@ -4,9 +4,18 @@ import { useToast } from "@/hooks/use-toast";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Ticket, Eye, Edit, CheckSquare, XSquare, Download } from "lucide-react";
 import { Link } from "wouter";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from "@/components/ui/dialog";
 import { DataTable, Column } from "@/components/tables/data-table";
 import { ServiceTicket, Supplier, Project } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
@@ -46,14 +55,31 @@ export default function ServiceTicketsPage() {
     return project ? project.projectName : 'Unknown Project';
   };
 
-  const handleApproveTicket = async (id: number) => {
+  const [approvalNotes, setApprovalNotes] = useState("");
+  const [ticketToAction, setTicketToAction] = useState<{id: number, action: "approve" | "reject"} | null>(null);
+  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
+
+  const handleOpenApprovalDialog = (id: number, action: "approve" | "reject") => {
+    setTicketToAction({ id, action });
+    setApprovalNotes("");
+    setApprovalDialogOpen(true);
+  };
+
+  const handleApproveTicket = async () => {
+    if (!ticketToAction) return;
+    
     try {
-      await apiRequest("PUT", `/api/tickets/${id}`, { status: "approved" });
+      await apiRequest("PUT", `/api/tickets/${ticketToAction.id}`, { 
+        status: "approved", 
+        notes: approvalNotes,
+        approvedBy: user?.id
+      });
       toast({
         title: "Ticket approved",
         description: "The service ticket has been approved",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/tickets'] });
+      setApprovalDialogOpen(false);
     } catch (error) {
       toast({
         title: "Error",
@@ -63,14 +89,21 @@ export default function ServiceTicketsPage() {
     }
   };
 
-  const handleRejectTicket = async (id: number) => {
+  const handleRejectTicket = async () => {
+    if (!ticketToAction) return;
+    
     try {
-      await apiRequest("PUT", `/api/tickets/${id}`, { status: "rejected" });
+      await apiRequest("PUT", `/api/tickets/${ticketToAction.id}`, { 
+        status: "rejected", 
+        notes: approvalNotes,
+        approvedBy: user?.id
+      });
       toast({
         title: "Ticket rejected",
         description: "The service ticket has been rejected",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/tickets'] });
+      setApprovalDialogOpen(false);
     } catch (error) {
       toast({
         title: "Error",
@@ -104,7 +137,7 @@ export default function ServiceTicketsPage() {
       case "submitted":
         return <Badge variant="secondary">Submitted</Badge>;
       case "approved":
-        return <Badge variant="success">Approved</Badge>;
+        return <Badge className="badge-neptune-success">Approved</Badge>;
       case "rejected":
         return <Badge variant="destructive">Rejected</Badge>;
       default:
@@ -180,7 +213,7 @@ export default function ServiceTicketsPage() {
               <Button 
                 variant="ghost" 
                 size="icon"
-                onClick={() => handleApproveTicket(row.id)}
+                onClick={() => handleOpenApprovalDialog(row.id, "approve")}
               >
                 <CheckSquare className="h-4 w-4 text-green-600" />
                 <span className="sr-only">Approve</span>
@@ -189,7 +222,7 @@ export default function ServiceTicketsPage() {
               <Button 
                 variant="ghost" 
                 size="icon"
-                onClick={() => handleRejectTicket(row.id)}
+                onClick={() => handleOpenApprovalDialog(row.id, "reject")}
               >
                 <XSquare className="h-4 w-4 text-red-600" />
                 <span className="sr-only">Reject</span>
@@ -300,6 +333,46 @@ export default function ServiceTicketsPage() {
           onPageChange: () => {},
         }}
       />
+      
+      {/* Approval/Rejection Dialog */}
+      <Dialog open={approvalDialogOpen} onOpenChange={setApprovalDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {ticketToAction?.action === "approve" ? "Approve Service Ticket" : "Reject Service Ticket"}
+            </DialogTitle>
+            <DialogDescription>
+              {ticketToAction?.action === "approve" 
+                ? "Add approval notes for this service ticket." 
+                : "Please provide a reason for rejecting this service ticket."}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="mt-4">
+            <Textarea
+              placeholder="Enter notes here..."
+              className="min-h-[100px]"
+              value={approvalNotes}
+              onChange={(e) => setApprovalNotes(e.target.value)}
+            />
+          </div>
+          
+          <DialogFooter className="mt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setApprovalDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              className="bg-[#0063B1] hover:bg-[#004c8a]"
+              onClick={ticketToAction?.action === "approve" ? handleApproveTicket : handleRejectTicket}
+            >
+              {ticketToAction?.action === "approve" ? "Approve" : "Reject"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
