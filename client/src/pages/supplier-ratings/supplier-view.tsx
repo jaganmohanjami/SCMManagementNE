@@ -41,26 +41,26 @@ export default function SupplierRatingsView() {
     );
   };
 
-  const ratingColumns: Column<SupplierRating>[] = [
+  const ratingColumns = [
     {
       header: "Date",
       accessorKey: "ratingDate",
-      cell: ({ row }) => format(new Date(row.original.ratingDate), "MMM d, yyyy"),
+      cell: ({ row }: any) => format(new Date(row.original.ratingDate), "MMM d, yyyy"),
     },
     {
       header: "Project",
       accessorKey: "projectId",
-      cell: ({ row }) => getProjectName(row.original.projectId),
+      cell: ({ row }: any) => getProjectName(row.original.projectId),
     },
     {
       header: "Overall Rating",
       accessorKey: "overallRating",
-      cell: ({ row }) => renderStars(Number(row.original.overallRating) || 0),
+      cell: ({ row }: any) => renderStars(Number(row.original.overallRating) || 0),
     },
     {
       header: "Actions",
-      accessorKey: "actions",
-      cell: ({ row }) => (
+      id: "actions",
+      cell: ({ row }: any) => (
         <div className="flex items-center justify-end gap-2">
           <Button size="icon" variant="ghost" asChild>
             <Link href={`/ratings/${row.original.id}`}>

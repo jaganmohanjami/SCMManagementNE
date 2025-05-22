@@ -132,9 +132,9 @@ export function Sidebar() {
         <SidebarLink 
           href="/ratings" 
           icon={<Star size={18} />} 
-          label="Supplier Ratings" 
+          label={isSupplier ? "Job Ratings" : "Supplier Ratings"} 
           active={location.startsWith("/ratings")}
-          allowed={isPurchasing || isOperations || isManagement} 
+          allowed={isPurchasing || isOperations || isManagement || isSupplier} 
         />
         
         <div className="px-4 py-2 mt-4 text-xs text-muted-foreground uppercase tracking-wider">
