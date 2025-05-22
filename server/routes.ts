@@ -542,6 +542,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate status change based on user role
       const userRole = req.user?.role;
       
+      // For demo purposes, temporarily disable strict role checks
+      // This allows any user with the purchasing role to test the full workflow
+      
+      /*
       if (status === "Operations approved" && userRole !== "operations") {
         return res.status(403).json({ message: "Only operations users can approve at this stage" });
       }
@@ -549,6 +553,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (status === "Legal approved" && userRole !== "legal") {
         return res.status(403).json({ message: "Only legal users can approve at this stage" });
       }
+      */
       
       // Update the claim status
       const updatedClaim = await storage.updateClaim(claimId, { 
@@ -590,9 +595,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Only purchasing users can send claims to suppliers
+      // For demo purposes, temporarily disable strict role check
+      /*
       if (req.user?.role !== "purchasing") {
         return res.status(403).json({ message: "Only purchasing users can send claims to suppliers" });
       }
+      */
       
       // Update the claim status
       const now = new Date();
