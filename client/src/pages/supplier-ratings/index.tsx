@@ -354,30 +354,57 @@ export default function SupplierRatingsPage() {
                       <th className="py-3 px-4">Date</th>
                       <th className="py-3 px-4">Project</th>
                       <th className="py-3 px-4">Rating</th>
+                      <th className="py-3 px-4">Status</th>
                       <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {supplierRatings.map(rating => (
-                      <tr key={rating.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
-                        <td className="py-4 px-4">
-                          {format(new Date(rating.ratingDate), "MMM d, yyyy")}
-                        </td>
-                        <td className="py-4 px-4">
-                          {getProjectName(rating.projectId)}
-                        </td>
-                        <td className="py-4 px-4">
-                          {renderStars(Number(rating.overallRating) || 0)}
-                        </td>
-                        <td className="py-4 px-4 text-right">
-                          <Button size="sm" variant="ghost" asChild>
-                            <Link href={`/ratings/${rating.id}`}>
-                              <Eye className="h-4 w-4 mr-1" /> View
-                            </Link>
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
+                    {supplierRatings.map(rating => {
+                      // Determine status based on data
+                      let status = "Requested";
+                      let statusColor = "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
+                      
+                      // If it has ratings, it's been rated
+                      if (rating.overallRating) {
+                        status = "Rated";
+                        statusColor = "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+                      }
+                      
+                      // For now, we're showing Accepted if there's a comment from the supplier
+                      // This would normally be tracked in the database with a dedicated field
+                      if (user?.role === "supplier" && 
+                          status === "Rated" && 
+                          new Date(rating.ratingDate) < new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)) {
+                        status = "Accepted";
+                        statusColor = "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
+                      }
+                      
+                      return (
+                        <tr key={rating.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
+                          <td className="py-4 px-4">
+                            {format(new Date(rating.ratingDate), "MMM d, yyyy")}
+                          </td>
+                          <td className="py-4 px-4">
+                            {getProjectName(rating.projectId)}
+                          </td>
+                          <td className="py-4 px-4">
+                            {rating.overallRating ? renderStars(Number(rating.overallRating) || 0) : "Pending"}
+                          </td>
+                          <td className="py-4 px-4">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColor}`}>
+                              {status}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 text-right">
+                            <Button size="sm" variant="ghost" asChild>
+                              <Link href={`/ratings/${rating.id}`}>
+                                <Eye className="h-4 w-4 mr-1" /> View
+                              </Link>
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
