@@ -23,6 +23,7 @@ export default function ClaimsPage() {
   const isLegal = user?.role === "legal";
   const isSupplier = user?.role === "supplier";
   const isOperations = user?.role === "operations";
+  const isPurchasing = user?.role === "purchasing";
 
   const { data: claims = [], isLoading } = useQuery<Claim[]>({
     queryKey: ['/api/claims'],
@@ -167,7 +168,7 @@ export default function ClaimsPage() {
           <p className="text-muted-foreground">Track and manage supplier claims</p>
         </div>
 
-        {(isLegal || isOperations) && (
+        {(isLegal || isOperations || isPurchasing) && (
           <Button asChild className="bg-[#0063B1] hover:bg-[#004c8a]">
             <Link href="/claims/new">
               <Plus className="mr-2 h-4 w-4" /> New Claim
