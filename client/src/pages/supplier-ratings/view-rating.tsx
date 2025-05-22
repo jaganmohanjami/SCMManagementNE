@@ -291,8 +291,8 @@ export default function ViewRatingPage() {
               <Separator />
 
               <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">Performance Feedback</h3>
-                <p className="text-foreground whitespace-pre-wrap">{rating.overallText || "No feedback provided."}</p>
+                <h3 className="text-sm font-medium text-muted-foreground mb-2">Job Description & Feedback</h3>
+                <p className="text-foreground whitespace-pre-wrap">{rating.overallText || "No job description or feedback provided."}</p>
               </div>
 
               {rating.acceptedBySupplier && rating.supplierComment && (

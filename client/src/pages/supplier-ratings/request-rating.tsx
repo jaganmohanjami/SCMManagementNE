@@ -190,15 +190,18 @@ export default function RequestRatingPage() {
                 name="message"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Request Message*</FormLabel>
+                    <FormLabel>Additional Job Context*</FormLabel>
                     <FormControl>
                       <Textarea 
-                        placeholder="Please provide any additional information about your request" 
+                        placeholder="Provide any additional context or special circumstances about the job" 
                         className="resize-none" 
                         rows={4}
                         {...field}
                       />
                     </FormControl>
+                    <FormDescription>
+                      Include any challenges encountered, special requirements, or other factors that influenced your work
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
