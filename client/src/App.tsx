@@ -83,7 +83,7 @@ function Router() {
       <ProtectedRoute 
         path="/claims/new" 
         component={ClaimForm}
-        requiredRoles={["legal", "operations"]} 
+        requiredRoles={["legal", "operations", "purchasing"]} 
       />
       <ProtectedRoute 
         path="/claims/:id" 
