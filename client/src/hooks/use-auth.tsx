@@ -209,6 +209,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 // Custom Auth Provider that uses local state instead of API
 export function CustomAuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  // Initialize with admin user to show all test data
   const [user, setUser] = useState<User | null>(sampleUsers.admin);
   const [isLoading, setIsLoading] = useState(false);
   
