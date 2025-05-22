@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, useNavigate } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -62,7 +62,7 @@ import {
 
 export default function ClaimDetailsPage() {
   const { id } = useParams();
-  const [_, navigate] = useNavigate();
+  const [_, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
   const [editMode, setEditMode] = useState(false);
@@ -401,7 +401,7 @@ export default function ClaimDetailsPage() {
     <AppLayout title={`Claim: ${claim.claimNumber}`}>
       <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => navigate("/claims")}>
+          <Button variant="outline" size="icon" onClick={() => setLocation("/claims")}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>

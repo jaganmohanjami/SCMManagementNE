@@ -150,7 +150,7 @@ export default function NewClaimPage() {
       });
       
       // Redirect to the claim details page
-      navigate(`/claims/${newClaim.id}`);
+      setLocation(`/claims/${newClaim.id}`);
     },
     onError: (error: Error) => {
       toast({
@@ -521,7 +521,7 @@ export default function NewClaimPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate("/claims")}
+                  onClick={() => setLocation("/claims")}
                 >
                   Cancel
                 </Button>
