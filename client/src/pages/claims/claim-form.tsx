@@ -21,7 +21,7 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Save, AlertTriangle, Upload, Paperclip, Calendar, FileText, Euro } from "lucide-react";
+import { ArrowLeft, Save, AlertTriangle, Upload, Paperclip, Calendar, FileText, Euro, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
@@ -60,31 +60,10 @@ export default function ClaimForm() {
   
   const isEditing = !!id;
   const isLegal = user?.role === "legal";
+  const isPurchasing = user?.role === "purchasing";
   const isSupplier = user?.role === "supplier";
-  const canEdit = isLegal || (isSupplier && claim?.supplierId === user?.companyId);
-
-  // Fetch claim data if editing
-  const { data: claim, isLoading: isLoadingClaim } = useQuery<Claim & { files?: FileUpload[] }>({
-    queryKey: ['/api/claims', parseInt(id || '0')],
-    enabled: isEditing,
-  });
-
-  // Fetch suppliers
-  const { data: suppliers = [] } = useQuery<Supplier[]>({
-    queryKey: ['/api/suppliers'],
-  });
-
-  // Fetch projects
-  const { data: projects = [] } = useQuery<Project[]>({
-    queryKey: ['/api/projects'],
-  });
-
-  // Fetch agreements for selected supplier
-  const { data: agreements = [], isLoading: isLoadingAgreements } = useQuery<Agreement[]>({
-    queryKey: ['/api/agreements', { supplierId: form.watch("supplierId") }],
-    enabled: !!form.watch("supplierId"),
-  });
-
+  
+  // Form setup first, before any references to it
   const form = useForm<ClaimFormValues>({
     resolver: zodResolver(claimFormSchema),
     defaultValues: {
@@ -103,6 +82,31 @@ export default function ClaimForm() {
       createdBy: user?.id,
     },
   });
+
+  // Fetch claim data if editing
+  const { data: claim, isLoading: isLoadingClaim } = useQuery<Claim & { files?: FileUpload[] }>({
+    queryKey: ['/api/claims', parseInt(id || '0')],
+    enabled: isEditing,
+  });
+
+  // Fetch suppliers
+  const { data: suppliers = [] } = useQuery<Supplier[]>({
+    queryKey: ['/api/suppliers'],
+  });
+
+  // Fetch projects
+  const { data: projects = [] } = useQuery<Project[]>({
+    queryKey: ['/api/projects'],
+  });
+  
+  // Fetch agreements for selected supplier
+  const { data: agreements = [] } = useQuery<Agreement[]>({
+    queryKey: ['/api/agreements', { supplierId: form.watch("supplierId") }],
+    enabled: !!form.watch("supplierId"),
+  });
+  
+  // Define canEdit after claim data is available
+  const canEdit = isLegal || isPurchasing || (isSupplier && claim?.supplierId === user?.companyId);
 
   useEffect(() => {
     if (claim) {
@@ -255,7 +259,7 @@ export default function ClaimForm() {
         
         {isEditing && claim?.acceptedBySupplier !== undefined && (
           <div className="ml-4">
-            <Badge variant={claim.acceptedBySupplier ? "success" : "destructive"}>
+            <Badge variant={claim.acceptedBySupplier ? "outline" : "destructive"}>
               {claim.acceptedBySupplier ? "Accepted" : "Rejected"}
             </Badge>
           </div>
@@ -295,7 +299,7 @@ export default function ClaimForm() {
                             <Select 
                               onValueChange={(value) => field.onChange(parseInt(value))} 
                               defaultValue={field.value?.toString()}
-                              disabled={isSupplier || !isLegal || (isEditing && !canEdit)}
+                              disabled={isSupplier || (!isLegal && !isPurchasing) || (isEditing && !canEdit)}
                             >
                               <FormControl>
                                 <SelectTrigger>
@@ -327,7 +331,7 @@ export default function ClaimForm() {
                             <Select 
                               onValueChange={(value) => field.onChange(parseInt(value))} 
                               defaultValue={field.value?.toString()}
-                              disabled={!isLegal || (isEditing && !canEdit)}
+                              disabled={(!isLegal && !isPurchasing) || (isEditing && !canEdit)}
                             >
                               <FormControl>
                                 <SelectTrigger>
@@ -359,7 +363,7 @@ export default function ClaimForm() {
                             <FormControl>
                               <div className="relative">
                                 <Calendar className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                                <Input type="date" className="pl-10" {...field} disabled={!isLegal || (isEditing && !canEdit)} />
+                                <Input type="date" className="pl-10" {...field} disabled={(!isLegal && !isPurchasing) || (isEditing && !canEdit)} />
                               </div>
                             </FormControl>
                             <FormMessage />
@@ -375,8 +379,8 @@ export default function ClaimForm() {
                             <FormLabel>Claim Area*</FormLabel>
                             <Select 
                               onValueChange={field.onChange} 
-                              defaultValue={field.value}
-                              disabled={!isLegal || (isEditing && !canEdit)}
+                              defaultValue={field.value || undefined}
+                              disabled={(!isLegal && !isPurchasing) || (isEditing && !canEdit)}
                             >
                               <FormControl>
                                 <SelectTrigger>
@@ -410,8 +414,9 @@ export default function ClaimForm() {
                                   className="pl-10" 
                                   placeholder="0.00" 
                                   {...field} 
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                                  disabled={!isLegal || (isEditing && !canEdit)}
+                                  value={field.value || ""}
+                                  onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : "")}
+                                  disabled={(!isLegal && !isPurchasing) || (isEditing && !canEdit)}
                                 />
                               </div>
                             </FormControl>
@@ -424,32 +429,27 @@ export default function ClaimForm() {
                         control={form.control}
                         name="agreementId"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Agreement</FormLabel>
-                            <Select 
-                              onValueChange={(value) => field.onChange(parseInt(value))} 
-                              defaultValue={field.value?.toString()}
-                              disabled={!isLegal || isLoadingAgreements || (isEditing && !canEdit)}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select an agreement" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="none">None</SelectItem>
-                                {agreements.map((agreement) => (
-                                  <SelectItem 
-                                    key={agreement.id} 
-                                    value={agreement.id.toString()}
-                                  >
-                                    {agreement.agreementNumber}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
+                        <FormItem>
+                          <FormLabel>Agreement</FormLabel>
+                          <Select 
+                            onValueChange={(value) => field.onChange(parseInt(value))} 
+                            defaultValue={field.value?.toString()}
+                            disabled={(!isLegal && !isPurchasing) || (isEditing && !canEdit)}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select agreement" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {/* Will be populated when agreements endpoint is implemented */}
+                              <SelectItem value="1">AGR-2025-001</SelectItem>
+                              <SelectItem value="2">AGR-2025-002</SelectItem>
+                              <SelectItem value="3">AGR-2025-003</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
                         )}
                       />
                     </div>
@@ -459,14 +459,15 @@ export default function ClaimForm() {
                       name="claimInfo"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Claim Information*</FormLabel>
+                          <FormLabel>Claim Details*</FormLabel>
                           <FormControl>
                             <Textarea 
-                              placeholder="Enter detailed claim information" 
-                              className="resize-none" 
-                              rows={3}
-                              {...field}
-                              disabled={!isLegal || (isEditing && !canEdit)}
+                              placeholder="Enter claim details" 
+                              className="min-h-[100px]" 
+                              {...field} 
+                              value={field.value || ""}
+                              disabled={(!isLegal && !isPurchasing) || (isEditing && !canEdit)}
+                              rows={4}
                             />
                           </FormControl>
                           <FormMessage />
@@ -479,14 +480,15 @@ export default function ClaimForm() {
                       name="defectsDescription"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Description of Defects</FormLabel>
+                          <FormLabel>Defects Description</FormLabel>
                           <FormControl>
                             <Textarea 
-                              placeholder="Enter description of defects" 
-                              className="resize-none" 
+                              placeholder="Enter defects description" 
+                              className="min-h-[80px]" 
+                              {...field} 
+                              value={field.value || ""}
+                              disabled={(!isLegal && !isPurchasing) || (isEditing && !canEdit)}
                               rows={3}
-                              {...field}
-                              disabled={!isLegal || (isEditing && !canEdit)}
                             />
                           </FormControl>
                           <FormMessage />
@@ -503,65 +505,27 @@ export default function ClaimForm() {
                           <FormControl>
                             <RadioGroup
                               onValueChange={field.onChange}
-                              defaultValue={field.value}
+                              defaultValue={field.value || undefined}
                               className="flex flex-col space-y-1"
-                              disabled={!isLegal || (isEditing && !canEdit)}
+                              disabled={(!isLegal && !isPurchasing) || (isEditing && !canEdit)}
                             >
                               <FormItem className="flex items-center space-x-3 space-y-0">
                                 <FormControl>
-                                  <RadioGroupItem value="Defect is tolerated" />
+                                  <RadioGroupItem value="replacement" />
                                 </FormControl>
-                                <FormLabel className="font-normal">
-                                  Defect is tolerated
-                                </FormLabel>
+                                <FormLabel className="font-normal">Replacement</FormLabel>
                               </FormItem>
                               <FormItem className="flex items-center space-x-3 space-y-0">
                                 <FormControl>
-                                  <RadioGroupItem value="Defect rectified by" />
+                                  <RadioGroupItem value="correction" />
                                 </FormControl>
-                                <FormLabel className="font-normal">
-                                  Defect rectified by
-                                </FormLabel>
+                                <FormLabel className="font-normal">Correction</FormLabel>
                               </FormItem>
                               <FormItem className="flex items-center space-x-3 space-y-0">
                                 <FormControl>
-                                  <RadioGroupItem value="Replacement delivery required" />
+                                  <RadioGroupItem value="compensation" />
                                 </FormControl>
-                                <FormLabel className="font-normal">
-                                  Replacement delivery required
-                                </FormLabel>
-                              </FormItem>
-                              <FormItem className="flex items-center space-x-3 space-y-0">
-                                <FormControl>
-                                  <RadioGroupItem value="Partial delivery required" />
-                                </FormControl>
-                                <FormLabel className="font-normal">
-                                  Partial delivery required
-                                </FormLabel>
-                              </FormItem>
-                              <FormItem className="flex items-center space-x-3 space-y-0">
-                                <FormControl>
-                                  <RadioGroupItem value="Rework required" />
-                                </FormControl>
-                                <FormLabel className="font-normal">
-                                  Rework required
-                                </FormLabel>
-                              </FormItem>
-                              <FormItem className="flex items-center space-x-3 space-y-0">
-                                <FormControl>
-                                  <RadioGroupItem value="Purchase price reduction" />
-                                </FormControl>
-                                <FormLabel className="font-normal">
-                                  Purchase price reduction
-                                </FormLabel>
-                              </FormItem>
-                              <FormItem className="flex items-center space-x-3 space-y-0">
-                                <FormControl>
-                                  <RadioGroupItem value="Compensation" />
-                                </FormControl>
-                                <FormLabel className="font-normal">
-                                  Compensation
-                                </FormLabel>
+                                <FormLabel className="font-normal">Compensation</FormLabel>
                               </FormItem>
                             </RadioGroup>
                           </FormControl>
@@ -575,14 +539,15 @@ export default function ClaimForm() {
                       name="demandText"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Demand Text</FormLabel>
+                          <FormLabel>Demand Details</FormLabel>
                           <FormControl>
                             <Textarea 
-                              placeholder="Enter additional demand information" 
-                              className="resize-none" 
-                              rows={2}
-                              {...field}
-                              disabled={!isLegal || (isEditing && !canEdit)}
+                              placeholder="Enter demand details" 
+                              className="min-h-[80px]" 
+                              {...field} 
+                              value={field.value || ""}
+                              disabled={(!isLegal && !isPurchasing) || (isEditing && !canEdit)}
+                              rows={3}
                             />
                           </FormControl>
                           <FormMessage />
@@ -597,7 +562,7 @@ export default function ClaimForm() {
                           name="acceptedBySupplier"
                           render={({ field }) => (
                             <FormItem className="space-y-3">
-                              <FormLabel>Supplier Response</FormLabel>
+                              <FormLabel>Response to Claim</FormLabel>
                               <FormControl>
                                 <RadioGroup
                                   onValueChange={(value) => field.onChange(value === 'true')}
@@ -608,17 +573,13 @@ export default function ClaimForm() {
                                     <FormControl>
                                       <RadioGroupItem value="true" />
                                     </FormControl>
-                                    <FormLabel className="font-normal">
-                                      Accept Claim
-                                    </FormLabel>
+                                    <FormLabel className="font-normal">Accept Claim</FormLabel>
                                   </FormItem>
                                   <FormItem className="flex items-center space-x-3 space-y-0">
                                     <FormControl>
                                       <RadioGroupItem value="false" />
                                     </FormControl>
-                                    <FormLabel className="font-normal">
-                                      Reject Claim
-                                    </FormLabel>
+                                    <FormLabel className="font-normal">Reject Claim</FormLabel>
                                   </FormItem>
                                 </RadioGroup>
                               </FormControl>
@@ -632,13 +593,14 @@ export default function ClaimForm() {
                           name="acceptedSupplierText"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Supplier Response Comments</FormLabel>
+                              <FormLabel>Response Comments</FormLabel>
                               <FormControl>
                                 <Textarea 
                                   placeholder="Enter your response to this claim" 
-                                  className="resize-none" 
-                                  rows={3}
-                                  {...field}
+                                  className="min-h-[100px]" 
+                                  {...field} 
+                                  value={field.value || ""}
+                                  rows={4}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -648,20 +610,64 @@ export default function ClaimForm() {
                       </>
                     )}
 
-                    {(canEdit || isLegal) && (
-                      <div className="flex justify-end space-x-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => navigate("/claims")}
+                    {(canEdit || isLegal || isPurchasing) && (
+                      <div className="pt-4 flex flex-col md:flex-row gap-4 items-center">
+                        <Button 
+                          type="submit" 
                           disabled={isLoading}
+                          className="w-full md:w-auto"
                         >
-                          Cancel
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="mr-2 h-4 w-4" />
+                              {isEditing ? "Update Claim" : "Create Claim"}
+                            </>
+                          )}
                         </Button>
-                        <Button type="submit" disabled={isLoading}>
-                          <Save className="mr-2 h-4 w-4" />
-                          {isLoading ? "Saving..." : "Save Claim"}
-                        </Button>
+                        
+                        {isEditing && (
+                          <div className="flex-1 w-full">
+                            <div className="flex flex-col md:flex-row items-center gap-4">
+                              <div className="flex-1 w-full">
+                                <Input 
+                                  type="file" 
+                                  onChange={handleFileChange} 
+                                  className="w-full"
+                                />
+                              </div>
+                              
+                              <div className="flex items-center space-x-2">
+                                <Checkbox 
+                                  id="visible-to-supplier" 
+                                  checked={visibleToSupplier}
+                                  onCheckedChange={(checked) => setVisibleToSupplier(checked as boolean)}
+                                />
+                                <label
+                                  htmlFor="visible-to-supplier"
+                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                  Visible to supplier
+                                </label>
+                              </div>
+                              
+                              <Button 
+                                type="button" 
+                                variant="outline" 
+                                disabled={!selectedFile}
+                                onClick={() => uploadFile(parseInt(id || '0'))}
+                                className="w-full md:w-auto"
+                              >
+                                <Upload className="mr-2 h-4 w-4" />
+                                Upload File
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </form>
@@ -669,163 +675,118 @@ export default function ClaimForm() {
               </CardContent>
             </Card>
           </div>
-
+          
           <div>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center">
-                  <Paperclip className="mr-2 h-5 w-5" />
-                  Attachments
-                </CardTitle>
-                <CardDescription>
-                  Files related to this claim
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {canEdit && (
-                  <div className="mb-4 space-y-4">
-                    <div>
-                      <Button variant="outline" className="w-full">
-                        <label className="cursor-pointer flex items-center justify-center w-full">
-                          <Upload className="mr-2 h-4 w-4" />
-                          Upload File
-                          <input 
-                            type="file" 
-                            className="hidden" 
-                            onChange={handleFileChange}
-                          />
-                        </label>
-                      </Button>
-                      {selectedFile && (
-                        <p className="mt-2 text-sm text-muted-foreground">
-                          Selected: {selectedFile.name}
-                        </p>
-                      )}
-                    </div>
-                    
-                    {selectedFile && (
-                      <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="fileVisibility" 
-                          checked={visibleToSupplier}
-                          onCheckedChange={(checked) => setVisibleToSupplier(checked as boolean)}
-                        />
-                        <label
-                          htmlFor="fileVisibility"
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                          Visible to supplier
-                        </label>
-                      </div>
-                    )}
-                    
-                    {selectedFile && isEditing && (
-                      <Button
-                        onClick={() => uploadFile(parseInt(id || '0'))}
-                        disabled={uploadFileMutation.isPending}
-                        className="w-full"
-                      >
-                        {uploadFileMutation.isPending ? "Uploading..." : "Upload Attachment"}
-                      </Button>
-                    )}
-                  </div>
-                )}
-
-                <div className="border rounded-md">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>File Name</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Visibility</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {!claim?.files || claim.files.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={3} className="text-center py-4 text-muted-foreground">
-                            No files attached to this claim
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        claim.files.map((file: FileUpload) => (
-                          <TableRow key={file.id}>
-                            <TableCell>
-                              <a 
-                                href={`/api/uploads/${file.fileName}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center text-primary hover:underline"
-                              >
-                                <FileText className="mr-2 h-4 w-4" />
-                                {file.originalName}
-                              </a>
-                            </TableCell>
-                            <TableCell>
-                              {file.mimeType.split('/')[1].toUpperCase()}
-                            </TableCell>
-                            <TableCell>
-                              {file.isVisibleToSupplier ? (
-                                <Badge variant="outline">Supplier can view</Badge>
-                              ) : (
-                                <Badge variant="secondary">Internal only</Badge>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-
-            {isEditing && (
-              <Card className="mt-6">
-                <CardHeader>
-                  <CardTitle className="text-base">Claim Status</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <dl className="space-y-2">
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">Current Status</dt>
-                      <dd className="text-base">
-                        {claim?.acceptedBySupplier === undefined 
-                          ? "Pending Response" 
-                          : claim.acceptedBySupplier 
-                            ? "Accepted by Supplier" 
-                            : "Rejected by Supplier"}
-                      </dd>
-                    </div>
-                    
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">Date Entered</dt>
-                      <dd className="text-base">
+            {isEditing ? (
+              <>
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle>Claim Status</CardTitle>
+                    <CardDescription>Current status information</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="text-sm text-muted-foreground">Claim Number:</div>
+                      <div className="text-sm font-medium">{claim?.claimNumber || 'N/A'}</div>
+                      
+                      <div className="text-sm text-muted-foreground">Status:</div>
+                      <div className="text-sm font-medium">{claim?.statusText || 'New'}</div>
+                      
+                      <div className="text-sm text-muted-foreground">Supplier:</div>
+                      <div className="text-sm font-medium">{claim?.supplierId ? getSupplierName(claim.supplierId) : 'N/A'}</div>
+                      
+                      <div className="text-sm text-muted-foreground">Project:</div>
+                      <div className="text-sm font-medium">{getProjectName(claim?.projectId)}</div>
+                      
+                      <div className="text-sm text-muted-foreground">Date Entered:</div>
+                      <div className="text-sm font-medium">
                         {claim?.dateEntered ? format(new Date(claim.dateEntered), "MMM d, yyyy") : 'N/A'}
-                      </dd>
+                      </div>
+                      
+                      <div className="text-sm text-muted-foreground">Date Approved:</div>
+                      <div className="text-sm font-medium">
+                        {claim?.dateApproved ? format(new Date(claim.dateApproved), "MMM d, yyyy") : 'Pending'}
+                      </div>
+                      
+                      <div className="text-sm text-muted-foreground">Date Sent to Supplier:</div>
+                      <div className="text-sm font-medium">
+                        {claim?.dateSentToSupplier ? format(new Date(claim.dateSentToSupplier), "MMM d, yyyy") : 'Pending'}
+                      </div>
+                      
+                      <div className="text-sm text-muted-foreground">Supplier Feedback:</div>
+                      <div className="text-sm font-medium">
+                        {claim?.dateFeedback ? format(new Date(claim.dateFeedback), "MMM d, yyyy") : 'Pending'}
+                      </div>
                     </div>
-                    
-                    {claim?.dateApproved && (
-                      <div>
-                        <dt className="text-sm font-medium text-muted-foreground">Date Approved</dt>
-                        <dd className="text-base">{format(new Date(claim.dateApproved), "MMM d, yyyy")}</dd>
-                      </div>
-                    )}
-                    
-                    {claim?.dateSentToSupplier && (
-                      <div>
-                        <dt className="text-sm font-medium text-muted-foreground">Date Sent to Supplier</dt>
-                        <dd className="text-base">{format(new Date(claim.dateSentToSupplier), "MMM d, yyyy")}</dd>
-                      </div>
-                    )}
-                    
-                    {claim?.dateFeedback && (
-                      <div>
-                        <dt className="text-sm font-medium text-muted-foreground">Feedback Date</dt>
-                        <dd className="text-base">{format(new Date(claim.dateFeedback), "MMM d, yyyy")}</dd>
-                      </div>
-                    )}
-                  </dl>
+                  </CardContent>
+                </Card>
+                
+                {claim?.files && claim.files.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <FileText className="mr-2 h-5 w-5" />
+                        Attached Files
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>File Name</TableHead>
+                            <TableHead>Visible to Supplier</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {claim.files.map((file: FileUpload) => (
+                            <TableRow key={file.id}>
+                              <TableCell>
+                                <a 
+                                  href={`/uploads/${file.filename}`} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:underline flex items-center"
+                                >
+                                  <Paperclip className="mr-1 h-4 w-4" />
+                                  {file.originalFilename}
+                                </a>
+                              </TableCell>
+                              <TableCell>
+                                {file.isVisibleToSupplier ? (
+                                  <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
+                                    Visible
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200">
+                                    Internal Only
+                                  </Badge>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Claim Process</CardTitle>
+                  <CardDescription>Information about the claim process</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="text-sm">
+                    <p className="mb-4">Creating a new claim involves the following steps:</p>
+                    <ol className="list-decimal list-inside space-y-2">
+                      <li>Legal or Operations creates the claim with initial details</li>
+                      <li>The claim is reviewed and approved internally</li>
+                      <li>Once approved, the claim is sent to the supplier</li>
+                      <li>The supplier can then review and respond to the claim</li>
+                      <li>Neptune Energy reviews the supplier's response and finalizes the claim</li>
+                    </ol>
+                  </div>
                 </CardContent>
               </Card>
             )}
