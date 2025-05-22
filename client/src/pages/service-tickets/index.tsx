@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Ticket, Eye, Edit, CheckSquare, XSquare, Download } from "lucide-react";
 import { Link } from "wouter";
+import { jsPDF } from "jspdf";
 import { 
   Dialog, 
   DialogContent, 
@@ -71,9 +72,14 @@ export default function ServiceTicketsPage() {
     try {
       await apiRequest("PUT", `/api/tickets/${ticketToAction.id}`, { 
         status: "approved", 
-        notes: approvalNotes,
-        approvedBy: user?.id
+        approvedBy: user?.id,
+        dateApproved: new Date().toISOString()
       });
+      
+      // Store notes in localStorage as a workaround (since we can't modify the DB schema)
+      const notesKey = `ticket_${ticketToAction.id}_notes`;
+      localStorage.setItem(notesKey, approvalNotes);
+      
       toast({
         title: "Ticket approved",
         description: "The service ticket has been approved",
@@ -94,10 +100,13 @@ export default function ServiceTicketsPage() {
     
     try {
       await apiRequest("PUT", `/api/tickets/${ticketToAction.id}`, { 
-        status: "rejected", 
-        notes: approvalNotes,
-        approvedBy: user?.id
+        status: "rejected"
       });
+      
+      // Store notes in localStorage as a workaround (since we can't modify the DB schema)
+      const notesKey = `ticket_${ticketToAction.id}_notes`;
+      localStorage.setItem(notesKey, approvalNotes);
+      
       toast({
         title: "Ticket rejected",
         description: "The service ticket has been rejected",
@@ -144,6 +153,124 @@ export default function ServiceTicketsPage() {
         return <Badge>{status}</Badge>;
     }
   };
+  
+  const generatePDF = async (ticket: ServiceTicket) => {
+    // Get ticket details
+    try {
+      // Fetch ticket items
+      const itemsRes = await fetch(`/api/tickets/${ticket.id}/items`);
+      const items = await itemsRes.json();
+      
+      // Get supplier and project details
+      const supplier = suppliers.find(s => s.id === ticket.supplierId);
+      const project = projects.find(p => p.id === ticket.projectId);
+      
+      // Create PDF document
+      const doc = new jsPDF();
+      
+      // Add Neptune Energy header
+      doc.setTextColor(0, 99, 177); // #0063B1
+      doc.setFontSize(22);
+      doc.text("Neptune Energy", 105, 20, { align: 'center' });
+      
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(18);
+      doc.text("Service Delivery Ticket", 105, 30, { align: 'center' });
+      
+      // Ticket info
+      doc.setFontSize(12);
+      doc.text(`Ticket Number: ${ticket.ticketNumber}`, 20, 45);
+      doc.text(`Date Created: ${format(new Date(ticket.dateCreated), "MMM d, yyyy")}`, 20, 52);
+      
+      if (ticket.dateApproved) {
+        doc.text(`Date Approved: ${format(new Date(ticket.dateApproved), "MMM d, yyyy")}`, 20, 59);
+      }
+      
+      doc.text(`Status: ${ticket.status.toUpperCase()}`, 20, 66);
+      
+      // Supplier and Project details
+      doc.setFontSize(14);
+      doc.text("Supplier Details:", 20, 80);
+      doc.setFontSize(12);
+      doc.text(`Name: ${supplier?.companyName || 'N/A'}`, 25, 87);
+      
+      doc.setFontSize(14);
+      doc.text("Project Details:", 20, 100);
+      doc.setFontSize(12);
+      doc.text(`Name: ${project?.projectName || 'N/A'}`, 25, 107);
+      
+      // Items table
+      if (items && items.length > 0) {
+        doc.setFontSize(14);
+        doc.text("Service Items:", 20, 125);
+        
+        // Table headers
+        doc.setFontSize(12);
+        doc.text("Description", 20, 135);
+        doc.text("Quantity", 120, 135);
+        doc.text("Price", 150, 135);
+        doc.text("Total", 180, 135);
+        
+        // Draw line under headers
+        doc.line(20, 137, 190, 137);
+        
+        // Table content
+        let yPos = 145;
+        let totalAmount = 0;
+        
+        items.forEach((item: any, index: number) => {
+          const price = typeof item.price === 'number' ? item.price : 0;
+          const quantity = typeof item.quantity === 'number' ? item.quantity : 0;
+          const total = price * quantity;
+          totalAmount += total;
+          
+          // Wrap description text if it's too long
+          const description = item.description || 'No description';
+          
+          doc.text(description.substring(0, 40) + (description.length > 40 ? '...' : ''), 20, yPos);
+          doc.text(quantity.toString(), 120, yPos);
+          doc.text(`€${price.toFixed(2)}`, 150, yPos);
+          doc.text(`€${total.toFixed(2)}`, 180, yPos);
+          
+          yPos += 10;
+          
+          // Add new page if needed
+          if (yPos > 270) {
+            doc.addPage();
+            yPos = 20;
+          }
+        });
+        
+        // Draw line under items
+        doc.line(20, yPos, 190, yPos);
+        yPos += 10;
+        
+        // Total amount
+        doc.setFontSize(14);
+        doc.text(`Total Amount: €${totalAmount.toFixed(2)}`, 120, yPos);
+      }
+      
+      // Footer
+      const footerText = `This document was generated on ${format(new Date(), "MMM d, yyyy")}`;
+      doc.setFontSize(10);
+      doc.text(footerText, 105, 280, { align: 'center' });
+      
+      // Save the PDF
+      doc.save(`${ticket.ticketNumber}.pdf`);
+      
+      toast({
+        title: "PDF Generated",
+        description: "Service ticket has been downloaded as a PDF",
+      });
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF",
+        variant: "destructive",
+      });
+    }
+  };
 
   const ticketColumns: Column<ServiceTicket>[] = [
     {
@@ -181,8 +308,8 @@ export default function ServiceTicketsPage() {
       accessorKey: "totalValue",
       cell: (row) => (
         <span className="font-medium">
-          {typeof row.totalValue === 'number' 
-            ? `€${row.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
+          {row.totalValue 
+            ? `€${Number(row.totalValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
             : '€0.00'}
         </span>
       ),
@@ -231,7 +358,11 @@ export default function ServiceTicketsPage() {
           )}
           
           {row.status === "approved" && (
-            <Button variant="ghost" size="icon">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => generatePDF(row)}
+            >
               <Download className="h-4 w-4" />
               <span className="sr-only">Download</span>
             </Button>
