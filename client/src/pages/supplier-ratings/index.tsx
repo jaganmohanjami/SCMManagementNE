@@ -287,9 +287,29 @@ export default function SupplierRatingsPage() {
     },
   ];
 
-  // If user is a supplier, show the supplier-specific view
+  // For supplier users, show a simplified view
   if (user?.role === "supplier") {
-    const SupplierView = require('./supplier-view').default;
+    // Filter ratings for this supplier only
+    const supplierRatings = ratings.filter(rating => rating.supplierId === user?.companyId);
+    
+    const renderStars = (rating: number) => {
+      return (
+        <div className="flex text-yellow-500">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <Star
+              key={star}
+              className={`h-4 w-4 ${star <= rating ? "fill-current" : "stroke-current"}`}
+            />
+          ))}
+        </div>
+      );
+    };
+    
+    const getProjectName = (projectId: number) => {
+      const project = projects.find(p => p.id === projectId);
+      return project ? project.projectName : 'Unknown Project';
+    };
+    
     return (
       <AppLayout title="Job Ratings">
         <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -297,9 +317,73 @@ export default function SupplierRatingsPage() {
             <h1 className="text-2xl font-semibold text-foreground mb-2">My Job Ratings</h1>
             <p className="text-muted-foreground">View and request ratings for jobs you've completed</p>
           </div>
+          
+          <Button asChild>
+            <Link href="/ratings/request">
+              <Send className="mr-2 h-4 w-4" /> Request Job Rating
+            </Link>
+          </Button>
         </div>
         
-        <SupplierView />
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Your Job Ratings</CardTitle>
+            <CardDescription>
+              View your performance ratings for completed jobs and services
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {supplierRatings.length === 0 ? (
+              <div className="text-center py-8">
+                <Calendar className="mx-auto h-12 w-12 text-muted-foreground opacity-50 mb-2" />
+                <h3 className="text-lg font-semibold mb-1">No Job Ratings Yet</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  You don't have any job ratings yet. Request a rating for a job you've completed.
+                </p>
+                <Button asChild variant="outline">
+                  <Link href="/ratings/request">
+                    <Send className="mr-2 h-4 w-4" /> Request Your First Job Rating
+                  </Link>
+                </Button>
+              </div>
+            ) : (
+              <div className="overflow-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left border-b">
+                      <th className="py-3 px-4">Date</th>
+                      <th className="py-3 px-4">Project</th>
+                      <th className="py-3 px-4">Rating</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {supplierRatings.map(rating => (
+                      <tr key={rating.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
+                        <td className="py-4 px-4">
+                          {format(new Date(rating.ratingDate), "MMM d, yyyy")}
+                        </td>
+                        <td className="py-4 px-4">
+                          {getProjectName(rating.projectId)}
+                        </td>
+                        <td className="py-4 px-4">
+                          {renderStars(Number(rating.overallRating) || 0)}
+                        </td>
+                        <td className="py-4 px-4 text-right">
+                          <Button size="sm" variant="ghost" asChild>
+                            <Link href={`/ratings/${rating.id}`}>
+                              <Eye className="h-4 w-4 mr-1" /> View
+                            </Link>
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </AppLayout>
     );
   }
