@@ -66,12 +66,19 @@ export default function SupplierRatingsPage() {
   // Filter ratings based on search, supplier, project, and time range
   const filteredRatings = ratings.filter(
     (rating) => {
+      // For supplier role, only show their own ratings
+      if (user?.role === "supplier" && user?.companyId) {
+        if (rating.supplierId !== user.companyId) {
+          return false;
+        }
+      }
+      
       const matchesSearch = 
         getSupplierName(rating.supplierId).toLowerCase().includes(search.toLowerCase()) ||
         getProjectName(rating.projectId).toLowerCase().includes(search.toLowerCase());
       
-      const matchesSupplier = !supplierFilter || rating.supplierId === parseInt(supplierFilter);
-      const matchesProject = !projectFilter || rating.projectId === parseInt(projectFilter);
+      const matchesSupplier = !supplierFilter || supplierFilter === "all" || rating.supplierId === parseInt(supplierFilter);
+      const matchesProject = !projectFilter || projectFilter === "all" || rating.projectId === parseInt(projectFilter);
       
       // Filter by time range
       const ratingDate = new Date(rating.ratingDate);
@@ -280,6 +287,24 @@ export default function SupplierRatingsPage() {
     },
   ];
 
+  // If user is a supplier, show the supplier-specific view
+  if (user?.role === "supplier") {
+    const SupplierView = require('./supplier-view').default;
+    return (
+      <AppLayout title="Job Ratings">
+        <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground mb-2">My Job Ratings</h1>
+            <p className="text-muted-foreground">View and request ratings for jobs you've completed</p>
+          </div>
+        </div>
+        
+        <SupplierView />
+      </AppLayout>
+    );
+  }
+
+  // For all other roles, show the regular view
   return (
     <AppLayout title="Supplier Ratings">
       <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -289,14 +314,6 @@ export default function SupplierRatingsPage() {
         </div>
 
         <div className="flex gap-3">
-          {user?.role === "supplier" && (
-            <Button asChild variant="outline">
-              <Link href="/ratings/request">
-                <Send className="mr-2 h-4 w-4" /> Request Rating
-              </Link>
-            </Button>
-          )}
-          
           {isOperations && (
             <Button asChild>
               <Link href="/ratings/new">
@@ -375,24 +392,32 @@ export default function SupplierRatingsPage() {
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <Select
-              value={supplierFilter}
-              onValueChange={setSupplierFilter}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All Suppliers" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Suppliers</SelectItem>
-                {suppliers.map((supplier) => (
-                  <SelectItem key={supplier.id} value={supplier.id.toString()}>
-                    {supplier.companyName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Only show supplier filter for non-supplier roles */}
+          {user?.role !== "supplier" ? (
+            <div>
+              <Select
+                value={supplierFilter}
+                onValueChange={setSupplierFilter}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All Suppliers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Suppliers</SelectItem>
+                  {suppliers.map((supplier) => (
+                    <SelectItem key={supplier.id} value={supplier.id.toString()}>
+                      {supplier.companyName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground mb-2">Your Job Ratings</h3>
+              <p className="text-xs text-muted-foreground">Showing ratings for {getSupplierName(user?.companyId || 0)}</p>
+            </div>
+          )}
           
           <div>
             <Select
