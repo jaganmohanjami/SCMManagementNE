@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -70,7 +70,7 @@ const claimFormSchema = insertClaimSchema.extend({
 type ClaimFormValues = z.infer<typeof claimFormSchema>;
 
 export default function NewClaimPage() {
-  const [_, navigate] = useNavigate();
+  const [_, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);

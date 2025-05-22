@@ -460,14 +460,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/api/claims", isAuthenticated, async (req, res) => {
     try {
+      // Step 1: User Purchasing adding into Web-Tool (DB)
       const validatedData = insertClaimSchema.parse({
         ...req.body,
         createdBy: req.user?.id,
       });
       
-      const newClaim = await storage.createClaim(validatedData);
+      // Generate a claim number
+      const currentDate = new Date();
+      const year = currentDate.getFullYear();
+      const claims = await storage.getClaims();
+      const claimNumber = `CLM-${year}-${(claims.length + 1).toString().padStart(3, '0')}`;
+      
+      // Set initial status and dates
+      const claimData = {
+        ...validatedData,
+        claimNumber,
+        statusText: "New",
+        dateEntered: new Date()
+      };
+      
+      const newClaim = await storage.createClaim(claimData);
+      
+      // Log activity
+      await storage.createActivityLog({
+        userId: req.user?.id || 1,
+        action: "Created",
+        entityType: "Claim",
+        entityId: newClaim.id,
+        description: `Created claim ${claimNumber}`,
+        timestamp: new Date()
+      });
+      
       res.status(201).json(newClaim);
     } catch (error) {
+      console.error("Error creating claim:", error);
       res.status(400).json({ message: "Invalid claim data" });
     }
   });
@@ -483,9 +510,191 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Claim not found" });
       }
       
+      // Log activity
+      await storage.createActivityLog({
+        userId: req.user?.id || 1,
+        action: "Updated",
+        entityType: "Claim",
+        entityId: id,
+        description: `Updated claim ${updatedClaim.claimNumber}`,
+        timestamp: new Date()
+      });
+      
       res.json(updatedClaim);
     } catch (error) {
       res.status(400).json({ message: "Invalid claim data" });
+    }
+  });
+  
+  // Claims Status Update - Approval Workflow
+  app.post("/api/claims/:id/status", isAuthenticated, async (req, res) => {
+    try {
+      const claimId = parseInt(req.params.id);
+      const { status, comment } = req.body;
+      
+      // Get the current claim
+      const claim = await storage.getClaim(claimId);
+      if (!claim) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
+      
+      // Step 2-3: Operations/Legal updating and approving
+      // Validate status change based on user role
+      const userRole = req.user?.role;
+      
+      if (status === "Operations approved" && userRole !== "operations") {
+        return res.status(403).json({ message: "Only operations users can approve at this stage" });
+      }
+      
+      if (status === "Legal approved" && userRole !== "legal") {
+        return res.status(403).json({ message: "Only legal users can approve at this stage" });
+      }
+      
+      // Update the claim status
+      const updatedClaim = await storage.updateClaim(claimId, { 
+        statusText: status
+      });
+      
+      if (!updatedClaim) {
+        return res.status(500).json({ message: "Failed to update claim status" });
+      }
+      
+      // Log activity
+      await storage.createActivityLog({
+        userId: req.user?.id || 1,
+        action: "Status Change",
+        entityType: "Claim",
+        entityId: claimId,
+        description: `Changed claim ${claim.claimNumber} status to ${status}` + 
+                    (comment ? ` with comment: ${comment}` : ""),
+        timestamp: new Date()
+      });
+      
+      res.json(updatedClaim);
+    } catch (error) {
+      console.error("Error updating claim status:", error);
+      res.status(500).json({ message: "Failed to update claim status" });
+    }
+  });
+  
+  // Step 4: User Purchasing sending Claim to Supplier
+  app.post("/api/claims/:id/send-to-supplier", isAuthenticated, async (req, res) => {
+    try {
+      const claimId = parseInt(req.params.id);
+      const { comment } = req.body;
+      
+      // Get the current claim
+      const claim = await storage.getClaim(claimId);
+      if (!claim) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
+      
+      // Only purchasing users can send claims to suppliers
+      if (req.user?.role !== "purchasing") {
+        return res.status(403).json({ message: "Only purchasing users can send claims to suppliers" });
+      }
+      
+      // Update the claim status
+      const now = new Date();
+      const updatedClaim = await storage.updateClaim(claimId, { 
+        statusText: "Sent to supplier",
+        dateSentToSupplier: now
+      });
+      
+      if (!updatedClaim) {
+        return res.status(500).json({ message: "Failed to update claim" });
+      }
+      
+      // Get supplier information for the email
+      const supplier = await storage.getSupplier(claim.supplierId);
+      if (!supplier) {
+        return res.status(404).json({ message: "Supplier not found" });
+      }
+      
+      // Import here to avoid circular dependencies
+      const { sendClaimToSupplier } = await import('./email-service');
+      
+      // Send email to supplier
+      const emailSent = await sendClaimToSupplier(
+        updatedClaim,
+        supplier,
+        req.user,
+        comment
+      );
+      
+      // Log activity
+      await storage.createActivityLog({
+        userId: req.user?.id || 1,
+        action: "Sent to Supplier",
+        entityType: "Claim",
+        entityId: claimId,
+        description: `Sent claim ${claim.claimNumber} to supplier ${supplier.companyName}` +
+                    (emailSent ? " (Email sent)" : " (Email failed)"),
+        timestamp: now
+      });
+      
+      res.json({ 
+        ...updatedClaim,
+        emailSent 
+      });
+    } catch (error) {
+      console.error("Error sending claim to supplier:", error);
+      res.status(500).json({ message: "Failed to send claim to supplier" });
+    }
+  });
+  
+  // Step 5: Claim visible in Web-Tool and editable with updates by user Purchasing
+  app.post("/api/claims/:id/supplier-response", isAuthenticated, async (req, res) => {
+    try {
+      const claimId = parseInt(req.params.id);
+      const { accepted, comment } = req.body;
+      
+      if (comment === undefined || comment.trim() === "") {
+        return res.status(400).json({ message: "Comment is required" });
+      }
+      
+      if (typeof accepted !== 'boolean') {
+        return res.status(400).json({ message: "Accepted field must be a boolean" });
+      }
+      
+      // Get the current claim
+      const claim = await storage.getClaim(claimId);
+      if (!claim) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
+      
+      // Verify that the supplier user is associated with the claim
+      if (req.user?.role !== "supplier" || req.user?.companyId !== claim.supplierId) {
+        return res.status(403).json({ message: "You are not authorized to respond to this claim" });
+      }
+      
+      // Update the claim with supplier response
+      const now = new Date();
+      const updatedClaim = await storage.updateClaim(claimId, { 
+        statusText: accepted ? "Accepted" : "Rejected by supplier",
+        acceptedBySupplier: accepted,
+        acceptedSupplierText: comment,
+        dateFeedback: now
+      });
+      
+      if (!updatedClaim) {
+        return res.status(500).json({ message: "Failed to update claim" });
+      }
+      
+      // Log activity
+      await storage.createActivityLog({
+        userId: req.user?.id || 1,
+        action: accepted ? "Accepted" : "Rejected",
+        entityType: "Claim",
+        entityId: claimId,
+        description: `Supplier ${accepted ? "accepted" : "rejected"} claim ${claim.claimNumber} with comment: ${comment}`,
+        timestamp: now
+      });
+      
+      res.json(updatedClaim);
+    } catch (error) {
+      console.error("Error processing supplier response:", error);
+      res.status(500).json({ message: "Failed to process supplier response" });
     }
   });
   
