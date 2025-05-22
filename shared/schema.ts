@@ -130,6 +130,8 @@ export const supplierRatings = pgTable("supplier_ratings", {
   id: serial("id").primaryKey(),
   supplierId: integer("supplier_id").notNull().references(() => suppliers.id),
   projectId: integer("project_id").notNull().references(() => projects.id),
+  jobDescription: text("job_description"), // Description of the specific job being rated
+  requestDate: timestamp("request_date"), // Date when supplier requested a rating
   ratingDate: timestamp("rating_date").defaultNow().notNull(),
   overallText: text("overall_text"),
   hseRating: integer("hse_rating"), // 1-5
@@ -138,6 +140,9 @@ export const supplierRatings = pgTable("supplier_ratings", {
   onTimeRating: integer("on_time_rating"), // 1-5
   serviceRating: integer("service_rating"), // 1-5
   overallRating: numeric("overall_rating"),
+  acceptedBySupplier: boolean("accepted_by_supplier"), // Whether supplier has accepted the rating
+  acceptedDate: timestamp("accepted_date"), // When supplier accepted the rating
+  supplierComment: text("supplier_comment"), // Supplier's response when accepting
   createdBy: integer("created_by").references(() => users.id),
 });
 
@@ -219,7 +224,12 @@ export const insertClaimSchema = createInsertSchema(claims).omit({
 export const insertSupplierRatingSchema = createInsertSchema(supplierRatings).omit({
   id: true, 
   ratingDate: true, 
-  overallRating: true
+  overallRating: true,
+  acceptedBySupplier: true,
+  acceptedDate: true
+}).extend({
+  jobDescription: z.string().min(5, "Job description must be at least 5 characters"),
+  supplierComment: z.string().optional()
 });
 
 export const insertFileUploadSchema = createInsertSchema(fileUploads).omit({

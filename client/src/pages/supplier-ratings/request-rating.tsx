@@ -23,6 +23,9 @@ const ratingRequestSchema = z.object({
   projectId: z.number({
     required_error: "Please select a project",
   }),
+  jobDescription: z.string().min(10, {
+    message: "Job description should be at least 10 characters.",
+  }),
   message: z.string().min(10, {
     message: "Message should be at least 10 characters.",
   }),
@@ -165,15 +168,34 @@ export default function RequestRatingPage() {
 
               <FormField
                 control={form.control}
+                name="jobDescription"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Job Description*</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Describe the specific job or service you performed for this project" 
+                        className="resize-none" 
+                        rows={3}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="message"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Request Message*</FormLabel>
                     <FormControl>
                       <Textarea 
-                        placeholder="Please provide details about the completed work or service that you would like to be rated" 
+                        placeholder="Please provide any additional information about your request" 
                         className="resize-none" 
-                        rows={6}
+                        rows={4}
                         {...field}
                       />
                     </FormControl>
