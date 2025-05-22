@@ -147,11 +147,38 @@ export default function ClaimsPage() {
             </Link>
           </Button>
           
-          {isLegal && (
+          {isPurchasing && (
             <Button variant="ghost" size="icon" asChild>
-              <Link href={`/claims/${row.id}`}>
+              <Link href={`/claims/${row.id}/edit`}>
                 <Edit className="h-4 w-4" />
                 <span className="sr-only">Edit</span>
+              </Link>
+            </Button>
+          )}
+          
+          {isOperations && row.statusText === "Pending Operations Review" && (
+            <Button variant="ghost" size="icon" asChild className="text-neptune">
+              <Link href={`/claims/${row.id}/approve`}>
+                <Edit className="h-4 w-4" />
+                <span className="sr-only">Review &amp; Approve</span>
+              </Link>
+            </Button>
+          )}
+          
+          {isLegal && row.statusText === "Pending Legal Review" && (
+            <Button variant="ghost" size="icon" asChild className="text-neptune">
+              <Link href={`/claims/${row.id}/approve`}>
+                <Edit className="h-4 w-4" />
+                <span className="sr-only">Review &amp; Approve</span>
+              </Link>
+            </Button>
+          )}
+          
+          {isPurchasing && row.statusText === "Ready To Send" && (
+            <Button variant="ghost" size="icon" asChild className="text-green-600">
+              <Link href={`/claims/${row.id}/send-to-supplier`}>
+                <Edit className="h-4 w-4" />
+                <span className="sr-only">Send to Supplier</span>
               </Link>
             </Button>
           )}
