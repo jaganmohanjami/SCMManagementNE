@@ -18,10 +18,12 @@ import SupplierRatingsPage from "@/pages/supplier-ratings";
 import RatingForm from "@/pages/supplier-ratings/rating-form";
 import RequestRatingPage from "@/pages/supplier-ratings/request-rating";
 import UserManagementPage from "@/pages/user-management";
+import TestPage from "@/pages/test-page";
 
 function Router() {
   return (
     <Switch>
+      <Route path="/test" component={TestPage} />
       <Route path="/" component={Dashboard} />
       
       {/* Supplier routes */}
