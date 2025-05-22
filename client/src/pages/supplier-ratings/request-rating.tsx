@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -98,7 +98,7 @@ export default function RequestRatingPage() {
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Ratings
           </Button>
           <h1 className="text-2xl font-semibold text-foreground">
-            Request Performance Rating
+            Request Job Performance Rating
           </h1>
         </div>
         
@@ -120,7 +120,7 @@ export default function RequestRatingPage() {
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Ratings
         </Button>
         <h1 className="text-2xl font-semibold text-foreground">
-          Request Performance Rating
+          Request Job Performance Rating
         </h1>
       </div>
 
